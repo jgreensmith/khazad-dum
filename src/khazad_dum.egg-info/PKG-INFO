@@ -1,0 +1,95 @@
+Metadata-Version: 2.4
+Name: khazad-dum
+Version: 0.1.0
+Summary: Python CLI wrapper around `claude` that walks a project through Research → Delivery.
+Author: James
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: tiktoken>=0.7.0
+
+# khazad-dum
+
+Python CLI wrapper around `claude` that walks a project through six phases:
+
+1. Research
+2. Experiment
+3. Architecture
+4. Project Management
+5. Developer Orchestration
+6. Delivery and Maintenance
+
+Each step has its own `input/`, `process/`, and `output/` folders under `documentation/` in the current working directory. Progress is tracked in `.khazad-dum/state.json` next to it.
+
+## Install
+
+Requires Python 3.9+ and the `claude` CLI on `PATH`.
+
+```bash
+# from the repo root
+pipx install .
+# or for development
+pipx install --editable .
+```
+
+If you do not use `pipx`:
+
+```bash
+python -m pip install --user .
+```
+
+Verify:
+
+```bash
+khazad-dum --help
+```
+
+## Usage
+
+```bash
+cd ~/code/my-project
+khazad-dum init        # scaffold documentation/ + .khazad-dum/state.json
+khazad-dum             # status (default with no args)
+khazad-dum run         # run the next pending step via `claude -p ...`
+khazad-dum run research
+khazad-dum run 2 --dry-run
+khazad-dum tokens path/to/file.md
+```
+
+### What `init` creates
+
+```
+$CWD/
+├── .khazad-dum/state.json
+└── documentation/
+    ├── 01_research/{input,process,output}/
+    ├── 02_experiment/{input,process,output}/
+    ├── 03_architecture/{input,process,output}/
+    ├── 04_project_management/{input,process,output}/
+    ├── 05_developer_orchestration/{input,process,output}/
+    └── 06_delivery_and_maintenance/{input,process,output}/
+```
+
+Each `input/scope.md` is seeded from a template. A symlink is also created at `~/Notes/Projects/<project-dir-name> -> $CWD/documentation` so the docs are editable from Obsidian.
+
+### Token check
+
+Before every `claude` invocation, the assembled prompt is tokenised with `tiktoken` (`cl100k_base`) and rejected if it exceeds `MAX_TOKENS = 180_000`.
+
+## Project layout
+
+```
+src/khazad_dum/
+├── cli.py          # argparse entry point
+├── steps.py        # ordered step list
+├── state.py        # .khazad-dum/state.json read/write
+├── tokens.py       # tiktoken wrapper + limit
+└── templates/
+    ├── scope.md
+    └── prompts/01_research.md … 06_delivery_and_maintenance.md
+```
+
+## Uninstall
+
+```bash
+pipx uninstall khazad-dum
+```

@@ -1,0 +1,2 @@
+[console_scripts]
+khazad-dum = khazad_dum.cli:main

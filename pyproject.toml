@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "khazad-dum"
+version = "0.1.0"
+description = "Python CLI wrapper around `claude` that walks a project through Research → Delivery."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "James" }]
+dependencies = [
+    "tiktoken>=0.7.0",
+]
+
+[project.scripts]
+khazad-dum = "khazad_dum.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+khazad_dum = ["workflows/**/*.md"]
