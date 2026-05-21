@@ -20,4 +20,9 @@ khazad-dum = "khazad_dum.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-khazad_dum = ["workflows/**/*.md"]
+khazad_dum = [
+    "workflows/**/*.md",
+    "terraform/*",
+    "terraform/**/*",
+    "terraform/.gitignore",
+]

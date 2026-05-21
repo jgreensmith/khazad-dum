@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import json
+import shutil
 import subprocess
 import sys
 from importlib import resources
 from pathlib import Path
 
+from . import terraform as tf
 from .state import State, STATE_DIR_NAME
 from .steps import STEPS, Step, get_step
 from .tokens import assert_within_limit, count_tokens, MAX_TOKENS
@@ -13,6 +16,25 @@ from .tokens import assert_within_limit, count_tokens, MAX_TOKENS
 
 DOCS_DIR = "documentation"
 NOTES_PROJECTS_DIR = Path.home() / "Notes" / "Projects"
+
+EXPERIMENT_DIR = "02_experiment"
+SERVERS_JSON_NAME = "servers.json"
+
+SERVERS_JSON_TEMPLATE = """[
+  {
+    "name": "experiment-01",
+    "region": "us-east-1",
+    "provision_file": "documentation/02_experiment/input/provision.sh"
+  }
+]
+"""
+
+SAMPLE_PROVISION = """#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Provisioning $(hostname) for the experiment..."
+# Add experiment setup commands here.
+"""
 
 
 def _template_text(relative: str) -> str:
@@ -56,6 +78,14 @@ def cmd_init(args: argparse.Namespace) -> None:
             scope_template = _template_text(step.scope_template_path)
             scope_path.write_text(f"# {step.name} — Scope\n\n{scope_template}")
 
+    experiment_input = docs / EXPERIMENT_DIR / "input"
+    servers_json = experiment_input / SERVERS_JSON_NAME
+    if not servers_json.exists():
+        servers_json.write_text(SERVERS_JSON_TEMPLATE)
+    provision_sh = experiment_input / "provision.sh"
+    if not provision_sh.exists():
+        provision_sh.write_text(SAMPLE_PROVISION)
+
     (project_root / STATE_DIR_NAME).mkdir(exist_ok=True)
     State.load(project_root).save(project_root)
 
@@ -63,6 +93,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     print(f"Initialised khazad-dum in {project_root}")
     print(f"  documentation/  ({len(STEPS)} steps)")
+    print(f"  {DOCS_DIR}/{EXPERIMENT_DIR}/input/{SERVERS_JSON_NAME}")
     print(f"  {STATE_DIR_NAME}/state.json")
 
 
@@ -229,6 +260,134 @@ def cmd_run(args: argparse.Namespace) -> None:
         sys.exit(result.returncode)
 
 
+def _load_experiment_servers(project_root: Path) -> list[dict]:
+    path = _docs_root(project_root) / EXPERIMENT_DIR / "input" / SERVERS_JSON_NAME
+    if not path.exists():
+        sys.exit(f"Experiment config not found: {path}. Run `khazad-dum init` first.")
+    try:
+        data = json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        sys.exit(f"Invalid JSON in {path}: {exc}")
+    if not isinstance(data, list):
+        sys.exit(f"{path} must contain a JSON array of server objects.")
+    return data
+
+
+def _validate_servers(servers: list[dict], project_root: Path) -> None:
+    if not servers:
+        sys.exit("No servers defined in servers.json. Add at least one server object.")
+    seen: set[str] = set()
+    for i, s in enumerate(servers):
+        if not isinstance(s, dict):
+            sys.exit(f"Server #{i + 1} is not an object.")
+        for key in ("name", "region", "provision_file"):
+            if not s.get(key):
+                sys.exit(f"Server #{i + 1} is missing required field '{key}'.")
+        name = s["name"]
+        if name in seen:
+            sys.exit(f"Duplicate server name '{name}'. Names must be unique within an experiment.")
+        seen.add(name)
+        if s["region"] not in tf.SUPPORTED_REGIONS:
+            sys.exit(
+                f"Server '{name}' uses unsupported region '{s['region']}'. "
+                f"Supported: {', '.join(tf.SUPPORTED_REGIONS)}."
+            )
+        provision = (project_root / s["provision_file"]).resolve()
+        if not provision.is_file():
+            sys.exit(f"Server '{name}': provision_file not found: {provision}")
+
+
+def cmd_build(args: argparse.Namespace) -> None:
+    project_root = _project_root()
+    _require_init(project_root)
+    experiment = project_root.name
+
+    servers = _load_experiment_servers(project_root)
+    _validate_servers(servers, project_root)
+
+    tf.ensure_tf_home()
+    tf.generate_ssh_keys(experiment)
+
+    data = tf.load_servers()
+    # Replace this experiment's entries, leaving other experiments untouched.
+    data["servers"] = {
+        k: v for k, v in data["servers"].items() if v.get("experiment") != experiment
+    }
+    for s in servers:
+        key = f"{experiment}__{s['name']}"
+        data["servers"][key] = {
+            "name": s["name"],
+            "region": s["region"],
+            "experiment": experiment,
+            "provision_file": str((project_root / s["provision_file"]).resolve()),
+            "instance_type": tf.DEFAULT_INSTANCE_TYPE,
+        }
+    tf.save_servers(data)
+
+    print(f"[khazad-dum] Building experiment '{experiment}' ({len(servers)} server(s))...")
+    env = tf.aws_env()
+    tf.init(env)
+    tf.apply(env)
+
+    outputs = tf.output_servers(env)
+    mine = {k: v for k, v in outputs.items() if v.get("experiment") == experiment}
+    if not mine:
+        print("[khazad-dum] No server outputs found; skipping summary prompt.")
+        return
+
+    prompt = _build_summary_prompt(experiment, mine)
+    print(f"[khazad-dum] Experiment '{experiment}' deployed. Summarising infrastructure...")
+    try:
+        subprocess.run(["claude", "-p", prompt])
+    except FileNotFoundError:
+        print("[khazad-dum] `claude` not found; printing summary prompt instead:\n")
+        print(prompt)
+
+
+def cmd_destroy(args: argparse.Namespace) -> None:
+    project_root = _project_root()
+    experiment = project_root.name
+
+    tf.ensure_tf_home()
+    data = tf.load_servers()
+    before = len(data["servers"])
+    data["servers"] = {
+        k: v for k, v in data["servers"].items() if v.get("experiment") != experiment
+    }
+    removed = before - len(data["servers"])
+    if removed == 0:
+        print(f"[khazad-dum] No servers found for experiment '{experiment}'. Nothing to destroy.")
+        return
+    tf.save_servers(data)
+
+    print(f"[khazad-dum] Destroying {removed} server(s) for experiment '{experiment}'...")
+    env = tf.aws_env()
+    tf.init(env)
+    tf.apply(env)
+
+    key_dir = tf.KEYS_DIR / experiment
+    if key_dir.exists():
+        shutil.rmtree(key_dir)
+    print(f"[khazad-dum] Experiment '{experiment}' destroyed.")
+
+
+def _build_summary_prompt(experiment: str, servers: dict) -> str:
+    prompt = _template_text(f"{EXPERIMENT_DIR}/prompts/summary.md")
+    template = _template_text(f"{EXPERIMENT_DIR}/templates/summary.md")
+
+    key_path = tf.KEYS_DIR / experiment / "id_rsa"
+    lines: list[str] = []
+    for info in sorted(servers.values(), key=lambda s: s["name"]):
+        lines.append(f"- **{info['name']}** ({info['region']})")
+        lines.append(f"  - public IP: {info['public_ip']}")
+        lines.append(f"  - public DNS: {info['public_dns']}")
+        lines.append(f"  - ssh: `ssh -i {key_path} ubuntu@{info['public_ip']}`")
+    rendered = template.replace("{{EXPERIMENT}}", experiment).replace(
+        "{{SERVERS}}", "\n".join(lines)
+    )
+    return f"{prompt}\n{rendered}"
+
+
 def cmd_tokens(args: argparse.Namespace) -> None:
     text = Path(args.file).read_text() if args.file else sys.stdin.read()
     print(count_tokens(text))
@@ -249,6 +408,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("step", nargs="?", help="Step slug or number (e.g. research, 1).")
     p_run.add_argument("--dry-run", action="store_true", help="Print prompt without invoking claude.")
     p_run.set_defaults(func=cmd_run)
+
+    p_build = sub.add_parser("build", help="Provision infrastructure for a phase.")
+    p_build.add_argument("target", choices=["experiment"], help="What to build.")
+    p_build.set_defaults(func=cmd_build)
+
+    p_destroy = sub.add_parser("destroy", help="Tear down infrastructure for a phase.")
+    p_destroy.add_argument("target", choices=["experiment"], help="What to destroy.")
+    p_destroy.set_defaults(func=cmd_destroy)
 
     p_tokens = sub.add_parser("tokens", help="Count tokens in a file or stdin.")
     p_tokens.add_argument("file", nargs="?", help="Path to a file. If omitted, reads stdin.")
