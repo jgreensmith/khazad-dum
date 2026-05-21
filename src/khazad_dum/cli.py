@@ -53,7 +53,7 @@ def cmd_init(args: argparse.Namespace) -> None:
         (step_dir / "output").mkdir(parents=True, exist_ok=True)
         scope_path = step_dir / "input" / "scope.md"
         if not scope_path.exists():
-            scope_template = _template_text(f"{step.dir_name}/input/scope.md")
+            scope_template = _template_text(step.scope_template_path)
             scope_path.write_text(f"# {step.name} — Scope\n\n{scope_template}")
 
     (project_root / STATE_DIR_NAME).mkdir(exist_ok=True)
@@ -97,6 +97,11 @@ def cmd_status(args: argparse.Namespace) -> None:
         else:
             marker = "[ ]"
         print(f"  {marker} {step.index}. {step.name}  ({step.dir_name})")
+        if step.sub_prompts:
+            done_subs = state.sub_completed.get(step.dir_name, [])
+            for sub in step.sub_prompts:
+                sub_marker = "[x]" if sub in done_subs else "[ ]"
+                print(f"       {sub_marker} {sub}")
     nxt = _next_pending(state)
     if nxt:
         print(f"\nNext pending: {nxt.index}. {nxt.name}")
@@ -112,12 +117,42 @@ def _next_pending(state: State) -> Step | None:
     return None
 
 
+# Maps research sub-prompt name → template file stems to inject into the prompt.
+_SUB_PROMPT_TEMPLATES: dict[str, tuple[str, ...]] = {
+    "create-pre-literature-review-questionnaire": ("questionnaire",),
+    "literature-review-decision": ("literature-review",),
+    "create-post-literature-review-questionnaire": ("questionnaire",),
+    "next-steps": (),
+}
+
+
 def _build_prompt(step: Step, project_root: Path) -> str:
     process = _template_text(f"{step.dir_name}/process/process.md")
     output = _template_text(f"{step.dir_name}/output/output.md")
     scope_path = _docs_root(project_root) / step.dir_name / "input" / "scope.md"
     scope = scope_path.read_text() if scope_path.exists() else ""
     return f"{process}\n\n---\n\n## Expected Output\n\n{output}\n\n---\n\n## Scope\n\n{scope}"
+
+
+def _build_sub_prompt(step: Step, sub_prompt: str, project_root: Path) -> str:
+    process = _template_text(f"{step.dir_name}/prompts/{sub_prompt}.md")
+    scope_path = _docs_root(project_root) / step.dir_name / "input" / "scope.md"
+    scope = scope_path.read_text() if scope_path.exists() else ""
+    parts = [process]
+    if scope:
+        parts.append(f"---\n\n## Project Description\n\n{scope}")
+    for tname in _SUB_PROMPT_TEMPLATES.get(sub_prompt, ()):
+        tmpl = _template_text(f"{step.dir_name}/templates/{tname}.md")
+        parts.append(f"---\n\n## Template\n\n{tmpl}")
+    return "\n\n".join(parts)
+
+
+def _next_pending_sub_prompt(step: Step, state: State) -> str | None:
+    done = state.sub_completed.get(step.dir_name, [])
+    for sub in step.sub_prompts:
+        if sub not in done:
+            return sub
+    return None
 
 
 def cmd_run(args: argparse.Namespace) -> None:
@@ -134,6 +169,40 @@ def cmd_run(args: argparse.Namespace) -> None:
         if step is None:
             print("All steps completed.")
             return
+
+    if step.sub_prompts:
+        sub = _next_pending_sub_prompt(step, state)
+        if sub is None:
+            print(f"[khazad-dum] Step {step.index} already complete.")
+            return
+        prompt = _build_sub_prompt(step, sub, project_root)
+        tokens = assert_within_limit(prompt)
+        sub_idx = list(step.sub_prompts).index(sub) + 1
+        print(f"[khazad-dum] Step {step.index}: {step.name} ({sub_idx}/{len(step.sub_prompts)}): {sub}")
+        print(f"[khazad-dum] Prompt size: {tokens} tokens (limit {MAX_TOKENS})")
+
+        if args.dry_run:
+            print("---\n" + prompt + "\n---")
+            return
+
+        state.current = step.dir_name
+        state.save(project_root)
+
+        result = subprocess.run(["claude", "-p", prompt])
+
+        if result.returncode == 0:
+            state.mark_sub_completed(step.dir_name, sub)
+            if _next_pending_sub_prompt(step, state) is None:
+                state.mark_completed(step.dir_name)
+                print(f"[khazad-dum] Step {step.index} complete.")
+            else:
+                remaining = len(step.sub_prompts) - len(state.sub_completed.get(step.dir_name, []))
+                print(f"[khazad-dum] Sub-step complete. {remaining} sub-step(s) remaining.")
+            state.save(project_root)
+        else:
+            print(f"[khazad-dum] claude exited with code {result.returncode}. Sub-step not marked complete.")
+            sys.exit(result.returncode)
+        return
 
     prompt = _build_prompt(step, project_root)
     tokens = assert_within_limit(prompt)

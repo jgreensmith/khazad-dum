@@ -8,14 +8,26 @@ class Step:
     index: int
     slug: str
     name: str
+    sub_prompts: tuple[str, ...] = ()
 
     @property
     def dir_name(self) -> str:
         return f"{self.index:02d}_{self.slug}"
 
+    @property
+    def scope_template_path(self) -> str:
+        if self.sub_prompts:
+            return f"{self.dir_name}/templates/project-description.md"
+        return f"{self.dir_name}/input/scope.md"
+
 
 STEPS: list[Step] = [
-    Step(1, "research", "Research"),
+    Step(1, "research", "Research", sub_prompts=(
+        "create-pre-literature-review-questionnaire",
+        "literature-review-decision",
+        "create-post-literature-review-questionnaire",
+        "next-steps",
+    )),
     Step(2, "experiment", "Experiment"),
     Step(3, "architecture", "Architecture"),
     Step(4, "project_management", "Project Management"),

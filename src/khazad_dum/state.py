@@ -13,6 +13,7 @@ STATE_FILE_NAME = "state.json"
 class State:
     completed: list[str] = field(default_factory=list)
     current: str | None = None
+    sub_completed: dict[str, list[str]] = field(default_factory=dict)
 
     @classmethod
     def load(cls, project_root: Path) -> "State":
@@ -23,6 +24,7 @@ class State:
         return cls(
             completed=data.get("completed", []),
             current=data.get("current"),
+            sub_completed=data.get("sub_completed", {}),
         )
 
     def save(self, project_root: Path) -> None:
@@ -35,3 +37,8 @@ class State:
             self.completed.append(step_dir)
         if self.current == step_dir:
             self.current = None
+
+    def mark_sub_completed(self, step_dir: str, sub: str) -> None:
+        subs = self.sub_completed.setdefault(step_dir, [])
+        if sub not in subs:
+            subs.append(sub)
