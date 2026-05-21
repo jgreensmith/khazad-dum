@@ -25,8 +25,9 @@ Assign yourself a **percentage certainty** for how confident you are that you fu
 ### Step 3 — Branch on Certainty Score
 
 #### IF certainty < 98:
-Do NOT attempt the literature review.
-Instead, append additional questions to `$CWD/documentation/01_research/process/pre-literature-review-questionnaire.md` to help clarify the scope of the project, and the requirements of the literature review. 
+- Do NOT attempt the literature review.
+- Instead, append additional questions to `$CWD/documentation/01_research/process/pre-literature-review-questionnaire.md` to help clarify the scope of the project, and the requirements of the literature review. 
+-  Before appending questions - add the **percentage certainty** obtained in Step 2.
 
 #### IF certainty >= 98:
 Proceed immediately to carry out a literature review:
