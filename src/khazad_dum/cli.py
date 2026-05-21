@@ -127,11 +127,13 @@ _SUB_PROMPT_TEMPLATES: dict[str, tuple[str, ...]] = {
 
 
 def _build_prompt(step: Step, project_root: Path) -> str:
-    process = _template_text(f"{step.dir_name}/process/process.md")
-    output = _template_text(f"{step.dir_name}/output/output.md")
+    prompt = _template_text(f"{step.dir_name}/prompts/prompt.md")
     scope_path = _docs_root(project_root) / step.dir_name / "input" / "scope.md"
     scope = scope_path.read_text() if scope_path.exists() else ""
-    return f"{process}\n\n---\n\n## Expected Output\n\n{output}\n\n---\n\n## Scope\n\n{scope}"
+    parts = [prompt]
+    if scope:
+        parts.append(f"---\n\n## Scope\n\n{scope}")
+    return "\n\n".join(parts)
 
 
 def _build_sub_prompt(step: Step, sub_prompt: str, project_root: Path) -> str:

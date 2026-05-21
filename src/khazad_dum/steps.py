@@ -18,7 +18,7 @@ class Step:
     def scope_template_path(self) -> str:
         if self.sub_prompts:
             return f"{self.dir_name}/templates/project-description.md"
-        return f"{self.dir_name}/input/scope.md"
+        return f"{self.dir_name}/templates/template.md"
 
 
 STEPS: list[Step] = [
