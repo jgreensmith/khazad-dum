@@ -10,7 +10,9 @@
 		Step 1.3 - Architecture:
 			Workflow 1.3.1 - Domain Modelling Loop
 			Workflow 1.3.2 - Complete Architecture Step
-		Step 1.4 - Project Management
+		Step 1.4 - Project Management:
+			Workflow 1.4.1 - Vertical Slicing Loop
+			Workflow 1.4.2 - Complete Project Management Step
 	Phase 2 - Active Build Phase:
 		Step 2.1 - Developer Orchestration
 		Step 2.2 - Delivery and Maintenance

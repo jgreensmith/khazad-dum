@@ -12,7 +12,7 @@ NOTE: `steps.py` wiring still shows the OLD research chain; rewiring is deferred
 | 1 | `01_research` | gate+complete (questionnaire loop) | **DONE** — reference example |
 | 2 | `02_experiment` | gate+complete (questionnaire loop) | **DONE** — gate drafts `servers.json`+scripts to `process/`, human promotes to `input/`; uses infra (terraform.md) |
 | 3 | `03_architecture` | loop+complete (**not** a certainty branch) | **DONE** — every cycle: questionnaire + C4 + DDD + skeleton proposal in `process/`; human advances; complete scaffolds skeleton in `$CWD` |
-| 4 | `04_project_management` | single prompt (not a loop) | empty placeholder |
+| 4 | `04_project_management` | loop+complete (**per-slice** certainty, not a branch) | **DONE** — every cycle: questionnaire + ordered feature-scopes table + per-feature scope docs + branch plan; complete finalises + emits `branch-plan.json` for the CLI to branch from |
 | 5 | `05_developer_orchestration` | single prompt (not a loop) | empty placeholder |
 | 6 | `06_delivery_and_maintenance` | single prompt (not a loop) | empty placeholder |
 
@@ -39,6 +39,18 @@ Each = 2 sub-prompts:
    (iteration 4) to `output/`, **scaffolds the skeleton in `$CWD` root** (cargo workspace, structure
    only), and writes `test_commands` to `.khazad-dum/config.json`.
 
+## Project Management loop+complete pattern (mirrors architecture)
+1. **loop** (`vertical-slicing-loop.md`): like architecture, no global certainty branch — every cycle
+   does BOTH: slice the **architectural-layers** table into the **narrowest** vertical slices, then
+   produce a fresh `vertical-slicing-questionnaire-{N}.md`. Certainty is **per slice**: any slice
+   <97% becomes a question. Each cycle creates/refines the ordered `process/feature-scopes.md` table,
+   each `documentation/features/<feat-name>/scope.md` (**top-level**, outside the step dir — the build
+   phase's unit of work), and the proposed `process/branch-plan.json`. Human advances via the CLI.
+2. **complete** (`complete-project-management-step.md`): moves the table to `output/`, writes
+   `finalised-project-plan.md` (iteration 5), and finalises `output/branch-plan.json`. The prompt
+   **never runs git** — `khazad-dum` creates one branch per `branch-plan.json` entry on acceptance
+   (CLI work, deferred), mirroring how `build` consumes `servers.json`.
+
 Per-phase deliverables: research gate→literature review, complete→refined-project-plan +
 experiment-recommendations. experiment gate→**draft** server config + provision scripts (`process/`,
 human promotes to `input/`, which `build` reads), complete→finalised project plan (iter 3).
@@ -58,8 +70,9 @@ project description (iter 4) + scaffolded skeleton + `test_commands`.
 - experiment: `prompts/experiment-decision.md` (gate) + `complete-experiment-step.md` (complete).
   `prompts/summary.md` is separate — the build-time infra briefing, not a phase workflow.
 - architecture: `prompts/domain-modelling-loop.md` (loop) + `complete-architecture-step.md` (complete).
+- project management: `prompts/vertical-slicing-loop.md` (loop) + `complete-project-management-step.md` (complete).
 - Obsolete questionnaire prompts (research pre/post, experiment pre) have been **deleted** (folded
-  into the gates), not just pending.
+  into the gates), not just pending. PM's empty `prompts/prompt.md` placeholder was also removed.
 
 ## Design intent (human-in-control) — see [[khazad-dum-workflow-design]] memory
 AI does the heavy lifting; the human stays in control of the plan.

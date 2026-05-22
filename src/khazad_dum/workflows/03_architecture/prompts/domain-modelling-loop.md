@@ -27,7 +27,7 @@ current cycle `N` is that count **+ 1**. (If the harness has told you the cycle 
 
 ## Step 2 — Drill into the domain model (do this hard)
 Interrogate the plan and the existing artifacts. Actively hunt for gaps, ambiguities, and
-contradictions across three fronts:
+contradictions across four fronts:
 - **Ubiquitous language** — every domain term defined, disambiguated, and used consistently.
 - **High-level technical architecture** — components/containers, their responsibilities and
   boundaries, data flow, interfaces/contracts, and the chosen tech stack (default **Rust / cargo
@@ -35,6 +35,10 @@ contradictions across three fronts:
   home lab).
 - **Domain-driven design** — bounded contexts, aggregates, entities, value objects, domain events,
   and the invariants that protect them.
+- **Layered architecture** — the horizontal layers (presentation/interface, application, domain,
+  infrastructure) and exactly what lives in each. The **Project Management** phase (1.4) cuts
+  *vertical* slices across these layers, so define them precisely now: every layer's responsibility
+  and boundary must be clear enough that a single feature can be traced end-to-end through them.
 
 ## Step 3 — Create / refine the design artifacts (every cycle)
 Write all three to `process/`. On cycle 1 these are first drafts; on later cycles, tweak them in
@@ -42,7 +46,9 @@ light of the newest `input/`. **Never write to `input/`.**
 1. **C4 diagram** → `$CWD/documentation/03_architecture/process/c4-diagram.md`, using the provided
    **C4 template** (Mermaid `C4Context` + `C4Container`).
 2. **DDD table** → `$CWD/documentation/03_architecture/process/ddd-table.md`, using the provided
-   **DDD table template**.
+   **DDD table template** — this covers the ubiquitous language, the DDD building blocks, **and the
+   architectural-layers table** that the next phase slices vertically. Keep the layers table complete
+   and current every cycle.
 3. **Skeleton project proposal** → `$CWD/documentation/03_architecture/process/skeleton-proposal.md`,
    using the provided **skeleton proposal template**. Propose the project structure (cargo workspace
    layout — crates, directories, modules) and the **predetermined testing commands**. This is a

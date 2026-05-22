@@ -18,7 +18,10 @@ the `$CWD` root and records test commands in `.khazad-dum/config.json`. Even so,
 
 ### 1 — Finalised design docs (refined for presentation) → `output/`
 - `$CWD/documentation/03_architecture/output/c4-diagram.md` — the finalised C4 diagram.
-- `$CWD/documentation/03_architecture/output/ddd-table.md` — the finalised DDD table.
+- `$CWD/documentation/03_architecture/output/ddd-table.md` — the finalised DDD table, including the
+  **architectural-layers table**. The Project Management phase cuts vertical slices across these
+  layers, so ensure every layer's responsibilities and component mappings are complete and
+  unambiguous.
 Refine the `process/` versions into clean, presentable handoff artifacts; do not just copy them.
 
 ### 2 — Detailed Project Description (iteration 4) → `output/`
