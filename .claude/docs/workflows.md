@@ -13,7 +13,7 @@ NOTE: `steps.py` wiring still shows the OLD research chain; rewiring is deferred
 | 2 | `02_experiment` | gate+complete (questionnaire loop) | **DONE** — gate drafts `servers.json`+scripts to `process/`, human promotes to `input/`; uses infra (terraform.md) |
 | 3 | `03_architecture` | loop+complete (**not** a certainty branch) | **DONE** — every cycle: questionnaire + C4 + DDD + skeleton proposal in `process/`; human advances; complete scaffolds skeleton in `$CWD` |
 | 4 | `04_project_management` | loop+complete (**per-slice** certainty, not a branch) | **DONE** — every cycle: questionnaire + ordered feature-scopes table + per-feature scope docs + branch plan; complete finalises + emits `branch-plan.json` for the CLI to branch from |
-| 5 | `05_developer_orchestration` | single prompt (not a loop) | empty placeholder |
+| 5 | `05_developer_orchestration` | **deterministic TDD state machine** (7 phases, Phase 2) | **DONE** — see "Developer Orchestration" below |
 | 6 | `06_delivery_and_maintenance` | single prompt (not a loop) | empty placeholder |
 
 Conceptual grouping (from `workflows/research-planning-phase.md`, the global prompt): Phase 1 = Research/Plan (steps 1–4),
@@ -50,6 +50,53 @@ Each = 2 sub-prompts:
    `finalised-project-plan.md` (iteration 5), and finalises `output/branch-plan.json`. The prompt
    **never runs git** — `khazad-dum` creates one branch per `branch-plan.json` entry on acceptance
    (CLI work, deferred), mirroring how `build` consumes `servers.json`.
+
+## Developer Orchestration (step 05) — deterministic TDD state machine (Phase 2)
+This is **Phase 2 (Active Build)**, not a planning phase, so it breaks every Phase 1 assumption:
+- Its global prompt is **`workflows/active-build-phase.md`** (Phase 2 tree only — not steps 01–04).
+- There is **no `documentation/05_*/{input,process,output}/`** plan to refine. The unit of work is one
+  feature's `documentation/features/<feat>/scope.md` (authored by PM). Prompts edit the **real
+  project** on a feature branch.
+- **scope.md is the agent's complete context** — prompts forbid trawling/auditing the wider codebase
+  (James's explicit requirement). Agents read only the modules scope.md names.
+
+**Core split (what makes it deterministic):** agents write code + a status report; **`khazad-dum` is
+the deterministic part** — after each agent run it executes the project's `test_commands` (from
+`.khazad-dum/config.json`) as the *real* gate, owns all git, and drives every transition + escalation.
+The agent's self-reported "tests pass" is never trusted.
+
+**Seven phases** (`prompts/*-phase.md`, titled `Workflow 2.1.x`, all tier-agnostic):
+1. `2.1.1 design-phase` — skeleton (modules/types/sigs, `todo!()` bodies). Gate: `cargo build`.
+2. `2.1.2 red-phase-e2e` — e2e/integration tests in the `e2e_tests` crate from scope's acceptance
+   criteria. Gate: tests build + new tests fail + existing pass.
+3. `2.1.3 red-phase-unit` — co-located `#[cfg(test)]` unit tests. Same red gate.
+4. `2.1.4 red-review-phase` — review-only; scores **certainty** that the tests capture scope's e2e
+   requirements + lists deficiencies (`review-report` template). Gate: certainty ≥ threshold → green;
+   else → red-edit.
+5. `2.1.5 red-edit-phase` — fixes the flagged tests only, stays red → back to 2.1.4 (loop, bounded).
+6. `2.1.6 green-phase` — production code to pass ALL tests; never edits tests. Gate: all pass + clippy
+   + fmt.
+7. `2.1.7 green-diagnosis-phase` — runs only when green exhausts the escalation ladder; emits a
+   **verdict** `test-defect|scope-defect|impl-hard` (`diagnosis-report` template).
+
+**Pipeline:** design → red-e2e → red-unit → [red-review ↔ red-edit] → green → (on exhaustion) diagnosis.
+
+**Escalation (config, never in prompts):** on a gate fail, retry at the same tier up to a budget, then
+climb `haiku/medium → sonnet/medium → opus/high → human`. `khazad-dum` sets `--model`/`--effort`.
+
+**Green-blocked routing = diagnose + bounded kickback:** top-tier green failure → 2.1.7 diagnosis →
+`test-defect` kicks back to red-edit **once** (then human if still failing); `scope-defect`/`impl-hard`
+→ human. This bounds any red↔green ping-pong.
+
+**Git = khazad-dum only.** It checks out the branch, commits at each passed gate, pushes/PRs. Agents
+never run git.
+
+**Feedback templates** (`templates/`): `status-report.md` (all phases), `review-report.md` (2.1.4),
+`diagnosis-report.md` (2.1.7). Each = a machine-readable ```json block (the routing signal) + prose
+audit. All reports → `.khazad-dum/orchestration_log/<feature>/<workflow-id>-<slug>-{N}.md`.
+
+(Wiring — steps.py `sub_prompts`, the orchestration state machine, escalation, git, config knobs — is
+**deferred CLI work**; see CLAUDE.md. `prompts/refactor.md` is a stale leftover, not part of 2.1.x.)
 
 Per-phase deliverables: research gate→literature review, complete→refined-project-plan +
 experiment-recommendations. experiment gate→**draft** server config + provision scripts (`process/`,

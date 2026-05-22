@@ -1,55 +1,33 @@
+## Workflow 2.1.6 — Green Phase
 
-# Build & Implementation Workflow (Green Phase)
+The tests are certified and failing. Implement the **production code** that makes **all** tests pass.
+The tests are the specification — satisfy them; do **not** change them.
 
-## Objective
-Make ALL failing tests pass. **Do NOT modify, add, or edit any existing tests.** This workflow assumes that new tests have  been written during red-phase for a new skeleton feature created during the design-phase. Your role is only to implement production code that makes all tests pass. 
+## Inputs (read-only context)
+- The provided **scope.md** — the feature's intent and constraints.
+- The certified e2e and unit tests — your exact target.
+- The skeleton from the Design phase — replace its placeholder bodies with real logic.
+- If failing-test output from an earlier attempt is provided, start from what it reveals.
 
 ## Requirements
 
-### Phase 1: Implementation Cycle
-1. Implement the minimum code required to make failing tests pass
-2. Write clear, concise code with inline comments explaining logic
-3. Run `cargo test` automatically after each implementation
-4. **Do NOT modify, create, or edit any tests** - only write production code
-5. Repeat this cycle until all tests pass
+#### Make the tests pass
+1. Implement the minimum correct logic to satisfy the failing tests — replace every `todo!()` /
+   `unimplemented!()` body this feature needs with a real implementation.
+2. Do **not** modify, add, weaken, or delete any test, and do not change the public signatures the
+   tests rely on. If a test appears impossible to satisfy, implement everything else correctly and
+   leave that failure standing — do **not** "fix" it by editing the test. `khazad-dum` handles the
+   exhausted case (it routes to diagnosis); a silently altered test would defeat the whole pipeline.
+3. Implement only what the tests and scope require — no untested features, no gold-plating.
 
-### Phase 2: Documentation & Polish
-1. Once all tests pass:
-   - Add or update Rust doc comments (///) for the function
-   - Include examples in doc comments when appropriate
-   - Update any relevant module-level documentation
-   - Ensure code follows Rust style guidelines
-2. Run `cargo fmt` and `cargo clippy --all-targets --all-features -- -D warnings` to ensure code quality
-3. Run `cargo test` one final time to verify everything still works
+#### Quality bar
+- Idiomatic, readable Rust; comment only non-obvious logic.
+- Add `///` doc comments to new public items.
+- The result must clear the project's full gate — all tests passing, plus `cargo clippy` (no
+  warnings) and `cargo fmt` — which `khazad-dum` runs to decide the outcome. You may run these
+  yourself to check your work.
 
-## Implementation Guidelines
-- Implement only what's necessary to pass the tests
-- Avoid over-engineering or adding untested features
-- Write code that is readable and maintainable
-- Use appropriate Rust idioms and best practices
-- Add inline comments explaining non-obvious logic
-- **CRITICAL: Do not modify, create, or delete any test files or test code**
-- **Only write production code to make existing tests pass**
-
-## Documentation Requirements
-- Write doc comments (///) for all public functions
-- Include at least one example in doc comments
-- Update module-level documentation if needed
-- Ensure all types and parameters are documented
-- Explain error cases in documentation
-
-## Success Criteria
-- [ ] All tests pass
-- [ ] Minimum viable implementation complete
-- [ ] Code has proper Rust documentation
-- [ ] No compiler warnings
-- [ ] Function behavior matches test expectations
-- [ ] Code formatted with `cargo fmt`
-- [ ] No clippy warnings with `cargo clippy`
-
-## Notes
-
-- Run cargo test after each implementation cycle
-- Ensure all code changes maintain backward compatibility
-- **Never touch test files or test code - if tests need changes, that is outside this workflow's scope**
-- Tests are the specification; implement production code to satisfy them, not the other way around
+Finish by writing your status report (status report template) to
+`.khazad-dum/orchestration_log/<feature>/2.1.6-green-{N}.md`. Summarise what you implemented; if any
+tests remain failing, list them and what blocked you — this feeds the Green Diagnosis phase if the
+escalation ladder is exhausted.
