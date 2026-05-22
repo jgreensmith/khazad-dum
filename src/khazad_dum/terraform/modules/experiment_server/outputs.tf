@@ -7,6 +7,7 @@ output "servers" {
       region     = var.servers[k].region
       public_ip  = inst.public_ip
       public_dns = inst.public_dns
+      private_ip = inst.private_ip
     }
   }
 }
