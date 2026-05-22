@@ -9,29 +9,41 @@ NOTE: `steps.py` wiring still shows the OLD research chain; rewiring is deferred
 (see CLAUDE.md "Deferred CLI work"). The "intended pattern" column is the new design.
 | N | dir | intended pattern | prompt-file status |
 |---|-----|------------------|--------------------|
-| 1 | `01_research` | gate+complete (questionnaire loop) | **prompts rewritten to new pattern** — reference example |
-| 2 | `02_experiment` | gate+complete (questionnaire loop) | TODO: rewrite to pattern; `experiment-decision.md` has TODOs; uses infra (terraform.md) |
-| 3 | `03_architecture` | gate+complete (questionnaire loop) | TODO: empty placeholder; deliverables undefined |
+| 1 | `01_research` | gate+complete (questionnaire loop) | **DONE** — reference example |
+| 2 | `02_experiment` | gate+complete (questionnaire loop) | **DONE** — gate drafts `servers.json`+scripts to `process/`, human promotes to `input/`; uses infra (terraform.md) |
+| 3 | `03_architecture` | loop+complete (**not** a certainty branch) | **DONE** — every cycle: questionnaire + C4 + DDD + skeleton proposal in `process/`; human advances; complete scaffolds skeleton in `$CWD` |
 | 4 | `04_project_management` | single prompt (not a loop) | empty placeholder |
 | 5 | `05_developer_orchestration` | single prompt (not a loop) | empty placeholder |
 | 6 | `06_delivery_and_maintenance` | single prompt (not a loop) | empty placeholder |
 
 Conceptual grouping (from `workflows/research-planning-phase.md`, the global prompt): Phase 1 = Research/Plan (steps 1–4),
-Phase 2 = Active Build (steps 5–6). The **questionnaire certainty loop applies only to research,
-experiment, architecture**.
+Phase 2 = Active Build (steps 5–6). All Phase 1 prompt titles match the global tree's `Workflow x.x.x`
+scheme. The **questionnaire certainty loop applies to research and experiment**; **architecture uses a
+different loop** (below).
 
-## Gate+complete pattern (research, experiment, architecture)
+## Gate+complete pattern (research, experiment)
 Each = 2 sub-prompts:
 1. **gate** (loops): reads `input/` → hard critical analysis (actively find problems) →
    self-assess % certainty. If <98 → write a NEW numbered questionnaire to `process/`
    (`...-questionnaire-{N}.md`, N = existing count + 1) and stop. If ≥98 → produce the phase
-   deliverable. Research gate file: `literature-review-decision.md`.
+   deliverable. Gate files: research `literature-review-decision.md`, experiment `experiment-decision.md`.
 2. **complete**: reads human-refined `input/` + the gate's deliverable → writes finalised
-   handoff artifact(s) to `output/`. Research complete file: `complete-research-step.md`.
+   handoff artifact(s) to `output/`. Files: `complete-research-step.md`, `complete-experiment-step.md`.
+
+## Architecture loop+complete pattern (breaks the mould)
+1. **loop** (`domain-modelling-loop.md`): NOT a certainty branch. Every cycle does BOTH — produce a
+   fresh `domain-modelling-questionnaire-{N}.md` (initial questionnaire enforced) AND create/refine
+   `c4-diagram.md` + `ddd-table.md` + `skeleton-proposal.md`, all in `process/`. No auto-advance;
+   the human advances via the CLI when satisfied.
+2. **complete** (`complete-architecture-step.md`): finalises C4 + DDD + `detailed-project-description.md`
+   (iteration 4) to `output/`, **scaffolds the skeleton in `$CWD` root** (cargo workspace, structure
+   only), and writes `test_commands` to `.khazad-dum/config.json`.
 
 Per-phase deliverables: research gate→literature review, complete→refined-project-plan +
-experiment-recommendations. experiment gate→server config + provision scripts (`process/`,
-read by `build`), complete→finalised project plan. architecture→TBD.
+experiment-recommendations. experiment gate→**draft** server config + provision scripts (`process/`,
+human promotes to `input/`, which `build` reads), complete→finalised project plan (iter 3).
+architecture loop→C4 + DDD + skeleton proposal (`process/`), complete→finalised C4 + DDD + detailed
+project description (iter 4) + scaffolded skeleton + `test_commands`.
 
 ## How a step's files are used
 - Single-prompt step → `prompts/prompt.md` (+ project `scope.md`).
@@ -41,11 +53,13 @@ read by `build`), complete→finalised project plan. architecture→TBD.
 - `init` seeds the project's `input/scope.md` from the step's `scope_template_path`
   (`project-description.md` for sub-prompt steps, else `template.md`).
 
-### Research files (current, new pattern)
-- `prompts/literature-review-decision.md` = the gate.
-- `prompts/complete-research-step.md` = the complete step.
-- `prompts/create-pre-literature-review-questionnaire.md` + `create-post-literature-review-questionnaire.md`
-  = **obsolete** (folded into the gate); pending deletion in the deferred CLI pass.
+### Phase 1 prompt files (current, new pattern)
+- research: `prompts/literature-review-decision.md` (gate) + `complete-research-step.md` (complete).
+- experiment: `prompts/experiment-decision.md` (gate) + `complete-experiment-step.md` (complete).
+  `prompts/summary.md` is separate — the build-time infra briefing, not a phase workflow.
+- architecture: `prompts/domain-modelling-loop.md` (loop) + `complete-architecture-step.md` (complete).
+- Obsolete questionnaire prompts (research pre/post, experiment pre) have been **deleted** (folded
+  into the gates), not just pending.
 
 ## Design intent (human-in-control) — see [[khazad-dum-workflow-design]] memory
 AI does the heavy lifting; the human stays in control of the plan.

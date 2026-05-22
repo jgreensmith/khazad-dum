@@ -5,10 +5,11 @@
 			Workflow 1.1.1 - Research Gate (Literature Review or Clarify)
 			Workflow 1.1.2 - Complete Research Step
 		Step 1.2 - Experiment:
-			Workflow 1.2.1 - Create Pre Experiment Questionnaire
-			Workflow 1.2.2 - Create Experiment Config Decision
-			Workflow 1.2.3 - Complete Experiment Step
-		Step 1.3 - Architecture
+			Workflow 1.2.1 - Experiment Gate (Config or Clarify)
+			Workflow 1.2.2 - Complete Experiment Step
+		Step 1.3 - Architecture:
+			Workflow 1.3.1 - Domain Modelling Loop
+			Workflow 1.3.2 - Complete Architecture Step
 		Step 1.4 - Project Management
 	Phase 2 - Active Build Phase:
 		Step 2.1 - Developer Orchestration
