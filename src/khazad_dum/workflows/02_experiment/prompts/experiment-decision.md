@@ -1,4 +1,4 @@
-# Workflow 1.2.2 - Create Experiment Config Decision
+## Workflow 1.2.2 - Create Experiment Config Decision
 
 ## Objectives
 - Self-assess understanding of the Experiment Requirements
