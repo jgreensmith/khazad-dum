@@ -3,11 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import subprocess
 import sys
 from importlib import resources
 from pathlib import Path
 
+from . import claude_sdk
 from . import terraform as tf
 from .state import State, STATE_DIR_NAME
 from .steps import STEPS, Step, get_step
@@ -188,6 +188,20 @@ def _next_pending_sub_prompt(step: Step, state: State) -> str | None:
     return None
 
 
+def _invoke(prompt: str, project_root: Path) -> claude_sdk.Result:
+    """Run a step prompt through the Agent SDK in WRITE mode (full coding access).
+
+    Exits with a clear message if the SDK or the `claude` binary is unavailable;
+    SDK-level errors during the run are reported back on the Result.
+    """
+    try:
+        return claude_sdk.run_prompt(
+            prompt, mode=claude_sdk.Mode.WRITE, cwd=project_root
+        )
+    except claude_sdk.ClaudeUnavailable as exc:
+        sys.exit(f"[khazad-dum] {exc}")
+
+
 def cmd_run(args: argparse.Namespace) -> None:
     project_root = _project_root()
     _require_init(project_root)
@@ -221,9 +235,9 @@ def cmd_run(args: argparse.Namespace) -> None:
         state.current = step.dir_name
         state.save(project_root)
 
-        result = subprocess.run(["claude", "-p", prompt])
+        result = _invoke(prompt, project_root)
 
-        if result.returncode == 0:
+        if not result.is_error:
             state.mark_sub_completed(step.dir_name, sub)
             if _next_pending_sub_prompt(step, state) is None:
                 state.mark_completed(step.dir_name)
@@ -233,8 +247,8 @@ def cmd_run(args: argparse.Namespace) -> None:
                 print(f"[khazad-dum] Sub-step complete. {remaining} sub-step(s) remaining.")
             state.save(project_root)
         else:
-            print(f"[khazad-dum] claude exited with code {result.returncode}. Sub-step not marked complete.")
-            sys.exit(result.returncode)
+            print(f"[khazad-dum] claude reported an error ({result.subtype or 'unknown'}). Sub-step not marked complete.")
+            sys.exit(1)
         return
 
     prompt = _build_prompt(step, project_root)
@@ -249,15 +263,15 @@ def cmd_run(args: argparse.Namespace) -> None:
     state.current = step.dir_name
     state.save(project_root)
 
-    result = subprocess.run(["claude", "-p", prompt])
+    result = _invoke(prompt, project_root)
 
-    if result.returncode == 0:
+    if not result.is_error:
         state.mark_completed(step.dir_name)
         state.save(project_root)
         print(f"[khazad-dum] Step {step.index} marked complete.")
     else:
-        print(f"[khazad-dum] claude exited with code {result.returncode}. Step not marked complete.")
-        sys.exit(result.returncode)
+        print(f"[khazad-dum] claude reported an error ({result.subtype or 'unknown'}). Step not marked complete.")
+        sys.exit(1)
 
 
 def _load_experiment_servers(project_root: Path) -> list[dict]:
@@ -337,10 +351,12 @@ def cmd_build(args: argparse.Namespace) -> None:
 
     prompt = _build_summary_prompt(experiment, mine)
     print(f"[khazad-dum] Experiment '{experiment}' deployed. Summarising infrastructure...")
+    # The summary is pure prompt-in / text-out — no files to touch — so run it
+    # in TEXT mode. Fall back to printing the prompt if claude is unavailable.
     try:
-        subprocess.run(["claude", "-p", prompt])
-    except FileNotFoundError:
-        print("[khazad-dum] `claude` not found; printing summary prompt instead:\n")
+        claude_sdk.run_prompt(prompt, mode=claude_sdk.Mode.TEXT)
+    except claude_sdk.ClaudeUnavailable:
+        print("[khazad-dum] claude unavailable; printing summary prompt instead:\n")
         print(prompt)
 
 

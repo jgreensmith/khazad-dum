@@ -7,10 +7,11 @@ name = "khazad-dum"
 version = "0.1.0"
 description = "Python CLI wrapper around `claude` that walks a project through Research → Delivery."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [{ name = "James" }]
 dependencies = [
     "tiktoken>=0.7.0",
+    "claude-agent-sdk>=0.2.0",
 ]
 
 [project.scripts]

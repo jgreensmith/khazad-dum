@@ -2,8 +2,17 @@
 
 ## Runtime shape
 `khazad-dum` is a thin orchestrator. It does not call any model API directly — it builds a
-text prompt and execs the local `claude` CLI (`subprocess.run(["claude", "-p", prompt])`).
+text prompt and drives Claude through the **Agent SDK** (`claude_sdk.run_prompt`), which runs
+the locally installed `claude` binary under subscription/CLI auth (no `ANTHROPIC_API_KEY`).
 All "intelligence" lives in the packaged workflow markdown, not in Python.
+
+`claude_sdk.py` wraps the SDK's async `query()` and exposes a `Mode` that scopes tool access
+per call: `TEXT` (no tools, no ambient config — answer from the prompt alone, e.g.
+questionnaires/summaries), `READ_ONLY` (Read/Glob/Grep, no mutation — review/analysis), and
+`WRITE` (full coding with bypassed permission prompts — Phase 2 build work). It streams the
+agent's text/tool activity to stdout and returns a `Result{text, is_error, subtype, num_turns,
+cost_usd}`. `setting_sources` defaults to empty so ambient `CLAUDE.md`/settings/skills never
+leak into a run — the assembled prompt is the whole context.
 
 ## Two state locations
 1. **Per-project** (in CWD): `documentation/` (the work product) + `.khazad-dum/state.json`
@@ -23,7 +32,8 @@ All "intelligence" lives in the packaged workflow markdown, not in Python.
   (appended under `## Template`).
 - `tokens.assert_within_limit` (180k, `cl100k_base`) — raises if over.
 - `--dry-run` prints the assembled prompt and stops.
-- otherwise set `state.current`, exec `claude -p`, and on exit 0 mark
+- otherwise set `state.current`, run the prompt via `_invoke` → `claude_sdk.run_prompt`
+  (WRITE mode, `cwd=project_root`), and when the `Result` is not an error mark
   sub/step complete in `state.json`.
 
 `_SUB_PROMPT_TEMPLATES` (in cli.py) is the map of which template files get injected into each

@@ -1,9 +1,10 @@
 # khazad-dum — Agent Index
 
-Python CLI that wraps the `claude` CLI to drive a project through 6 phases. Each `run`
+Python CLI that drives a project through 6 phases using Claude. Each `run`
 assembles a prompt from packaged workflow markdown + the project's `scope.md`, token-checks
-it (tiktoken `cl100k_base`, 180k limit), then shells out to `claude -p`. A `build`/`destroy`
-pair provisions AWS EC2 experiment servers via Terraform.
+it (tiktoken `cl100k_base`, 180k limit), then runs it through the **Agent SDK**
+(`claude_sdk.run_prompt`, mode-scoped tool access; uses the local `claude` binary under
+subscription auth). A `build`/`destroy` pair provisions AWS EC2 experiment servers via Terraform.
 
 **This file is an index. Read the linked doc only when working in that area — do not load all of them.**
 
@@ -13,7 +14,8 @@ pair provisions AWS EC2 experiment servers via Terraform.
 - [.claude/docs/terraform.md](.claude/docs/terraform.md) — `build`/`destroy`, TF home, 1Password creds, MinIO state backend, regions.
 
 ## Source map
-- `src/khazad_dum/cli.py` — argparse entry (`main`); commands: `init`, `status` (default), `run`, `build`, `destroy`, `tokens`.
+- `src/khazad_dum/cli.py` — argparse entry (`main`); commands: `init`, `status` (default), `run`, `build`, `destroy`, `tokens`. `_invoke` drives a step prompt through the SDK in WRITE mode.
+- `src/khazad_dum/claude_sdk.py` — Agent SDK transport (`run_prompt`, `Mode.{TEXT,READ_ONLY,WRITE}`, `Result`, `ClaudeUnavailable`). Replaces the old `subprocess.run(["claude","-p",…])`; mode picks the tool/permission/system-prompt policy; `setting_sources` empty by default.
 - `src/khazad_dum/steps.py` — ordered `STEPS` list; `Step` dataclass; `sub_prompts` wiring.
 - `src/khazad_dum/state.py` — `.khazad-dum/state.json` read/write (`completed`, `current`, `sub_completed`).
 - `src/khazad_dum/tokens.py` — tiktoken wrapper + `MAX_TOKENS`.
