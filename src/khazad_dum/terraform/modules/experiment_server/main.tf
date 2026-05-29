@@ -29,15 +29,28 @@ data "aws_vpc" "default" {
 
 resource "aws_security_group" "ssh" {
   name        = "khazad-dum-experiments"
-  description = "khazad-dum experiment SSH access"
+  description = "khazad-dum experiment SSH + listener/app access"
   vpc_id      = data.aws_vpc.default.id
 
+  # SSH from anywhere: khazad-dum delivers the provisioning bundle over SSH to
+  # the public IP at provision time.
   ingress {
     description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Listener control plane + experiment app traffic arrive via the in-VPC
+  # Twingate connector (private IPs), so allow all TCP/UDP/ICMP from the VPC —
+  # not the public internet.
+  ingress {
+    description = "Listener + experiment traffic (in-VPC, via Twingate connector)"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [data.aws_vpc.default.cidr_block]
   }
 
   egress {
@@ -80,15 +93,19 @@ resource "aws_instance" "this" {
     host        = self.public_ip
   }
 
+  # Deliver the whole bundle directory (listener + payload + generated
+  # bootstrap.sh) and run the bootstrap. The bootstrap (generated per endpoint
+  # by khazad-dum) installs the listener as a systemd service and runs the
+  # project payload's provisioning. Role/port/payload paths are baked into it.
   provisioner "file" {
-    source      = each.value.provision_file
-    destination = "/tmp/khazad-provision"
+    source      = "${each.value.bundle_dir}/"
+    destination = "/tmp/khazad-bundle"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod +x /tmp/khazad-provision",
-      "/tmp/khazad-provision",
+      "chmod +x /tmp/khazad-bundle/bootstrap.sh",
+      "sudo bash /tmp/khazad-bundle/bootstrap.sh",
     ]
   }
 }

@@ -1,13 +1,15 @@
 variable "servers" {
-  description = "Map of experiment servers, keyed by <experiment>__<name>. Managed by the khazad-dum CLI."
+  description = "Map of experiment endpoints, keyed by <experiment>__<name>. Managed by the khazad-dum CLI."
   type = map(object({
-    name           = string
-    experiment     = string
-    provision_file = string
-    target         = string           # "aws" or "homelab"
-    region         = optional(string, "")
-    instance_type  = optional(string, "")
-    docker_image   = optional(string, "")
+    name          = string
+    experiment    = string
+    target        = string                 # "aws" (remote app) or "homelab" (local app)
+    role          = string                 # "remote" or "local"
+    bundle_dir    = string                 # local dir khazad-dum staged: listener + payload + bootstrap.sh
+    listener_port = optional(number, 8080) # control port the listener binds
+    region        = optional(string, "")   # aws only
+    instance_type = optional(string, "")   # aws only
+    docker_image  = optional(string, "")   # homelab only (must provide python3 + bash, e.g. python:3.12-slim)
   }))
   default = {}
 }
@@ -17,13 +19,18 @@ variable "keys_dir" {
   type        = string
 }
 
-variable "tg_api_key" {
-  description = "Twingate API key (Settings > API in the Admin Console)."
+variable "tg_api_token" {
+  description = "Twingate API token (Settings > API in the Admin Console)."
   type        = string
   sensitive   = true
 }
 
 variable "tg_network" {
   description = "Twingate tenant name (the subdomain of your .twingate.com URL)."
+  type        = string
+}
+
+variable "tg_homelab_remote_network" {
+  description = "Name of the EXISTING Twingate remote network that your homelab connector (on computron) serves. The experiment container is exposed as a resource inside it."
   type        = string
 }

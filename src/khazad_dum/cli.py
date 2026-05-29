@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import shutil
 import sys
+import tarfile
+import time
+import urllib.error
+import urllib.request
 from importlib import resources
 from pathlib import Path
 
@@ -19,21 +24,39 @@ NOTES_PROJECTS_DIR = Path.home() / "Notes" / "Projects"
 
 EXPERIMENT_DIR = "02_experiment"
 SERVERS_JSON_NAME = "servers.json"
+RESULTS_DIR_NAME = "results"  # under documentation/02_experiment/process/
 
+# An experiment is a WAN-comms benchmark between two endpoints: an AWS EC2 host
+# (the "remote app") and a Docker container on computron (the "local app"),
+# reachable over a Twingate TLS tunnel. Each endpoint points at a payload
+# directory holding an executable `run` (the project's experiment code, authored
+# by the Experiment gate workflow) that writes results the listener serves.
 SERVERS_JSON_TEMPLATE = """[
   {
-    "name": "experiment-01",
-    "region": "us-east-1",
-    "provision_file": "documentation/02_experiment/input/provision.sh"
+    "name": "remote-app",
+    "target": "aws",
+    "role": "remote",
+    "region": "eu-west-2",
+    "payload_dir": "documentation/02_experiment/input/payload/remote-app"
+  },
+  {
+    "name": "local-app",
+    "target": "homelab",
+    "role": "local",
+    "docker_image": "python:3.12-slim",
+    "payload_dir": "documentation/02_experiment/input/payload/local-app"
   }
 ]
 """
 
-SAMPLE_PROVISION = """#!/usr/bin/env bash
+SAMPLE_PAYLOAD_RUN = """#!/usr/bin/env bash
 set -euo pipefail
-
-echo "Provisioning $(hostname) for the experiment..."
-# Add experiment setup commands here.
+# Experiment entrypoint. khazad-dum's `start` triggers this via the listener;
+# write all outputs into $KHAZAD_RESULTS_DIR. The Experiment gate workflow
+# generates the real benchmark here (e.g. drive a protocol against the peer at
+# $KHAZAD_PEER_ADDR and record latency/throughput). This sample is a placeholder.
+echo "role=$KHAZAD_ROLE peer=$KHAZAD_PEER_ADDR run_id=$KHAZAD_RUN_ID" \\
+  > "$KHAZAD_RESULTS_DIR/info.txt"
 """
 
 
@@ -75,16 +98,26 @@ def cmd_init(args: argparse.Namespace) -> None:
         (step_dir / "output").mkdir(parents=True, exist_ok=True)
         scope_path = step_dir / "input" / "scope.md"
         if not scope_path.exists():
-            scope_template = _template_text(step.scope_template_path)
+            try:
+                scope_template = _template_text(step.scope_template_path)
+            except (FileNotFoundError, OSError):
+                # Some later phases have no scope template yet — seed a
+                # placeholder rather than aborting the whole init.
+                scope_template = "<!-- scope template not yet defined for this step -->"
             scope_path.write_text(f"# {step.name} — Scope\n\n{scope_template}")
 
     experiment_input = docs / EXPERIMENT_DIR / "input"
     servers_json = experiment_input / SERVERS_JSON_NAME
     if not servers_json.exists():
         servers_json.write_text(SERVERS_JSON_TEMPLATE)
-    provision_sh = experiment_input / "provision.sh"
-    if not provision_sh.exists():
-        provision_sh.write_text(SAMPLE_PROVISION)
+    # Seed a sample payload (executable `run`) for each endpoint in the template.
+    for server in json.loads(SERVERS_JSON_TEMPLATE):
+        payload_dir = project_root / server["payload_dir"]
+        run_script = payload_dir / "run"
+        if not run_script.exists():
+            payload_dir.mkdir(parents=True, exist_ok=True)
+            run_script.write_text(SAMPLE_PAYLOAD_RUN)
+            run_script.chmod(0o755)
 
     (project_root / STATE_DIR_NAME).mkdir(exist_ok=True)
     State.load(project_root).save(project_root)
@@ -148,12 +181,16 @@ def _next_pending(state: State) -> Step | None:
     return None
 
 
-# Maps research sub-prompt name → template file stems to inject into the prompt.
+# Maps a sub-prompt / analysis-prompt name → template file stems to inject.
 _SUB_PROMPT_TEMPLATES: dict[str, tuple[str, ...]] = {
+    # research (older wiring; left as-is pending the research rewire)
     "create-pre-literature-review-questionnaire": ("questionnaire",),
     "literature-review-decision": ("literature-review",),
     "create-post-literature-review-questionnaire": ("questionnaire",),
     "next-steps": (),
+    # experiment
+    "experiment-decision": ("questionnaire",),
+    "experiment-report": ("experiment-report",),
 }
 
 
@@ -289,26 +326,88 @@ def _load_experiment_servers(project_root: Path) -> list[dict]:
 
 def _validate_servers(servers: list[dict], project_root: Path) -> None:
     if not servers:
-        sys.exit("No servers defined in servers.json. Add at least one server object.")
+        sys.exit("No endpoints defined in servers.json. Add at least one endpoint object.")
     seen: set[str] = set()
     for i, s in enumerate(servers):
         if not isinstance(s, dict):
-            sys.exit(f"Server #{i + 1} is not an object.")
-        for key in ("name", "region", "provision_file"):
+            sys.exit(f"Endpoint #{i + 1} is not an object.")
+        for key in ("name", "target", "role", "payload_dir"):
             if not s.get(key):
-                sys.exit(f"Server #{i + 1} is missing required field '{key}'.")
+                sys.exit(f"Endpoint #{i + 1} is missing required field '{key}'.")
         name = s["name"]
         if name in seen:
-            sys.exit(f"Duplicate server name '{name}'. Names must be unique within an experiment.")
+            sys.exit(f"Duplicate endpoint name '{name}'. Names must be unique within an experiment.")
         seen.add(name)
-        if s["region"] not in tf.SUPPORTED_REGIONS:
-            sys.exit(
-                f"Server '{name}' uses unsupported region '{s['region']}'. "
-                f"Supported: {', '.join(tf.SUPPORTED_REGIONS)}."
-            )
-        provision = (project_root / s["provision_file"]).resolve()
-        if not provision.is_file():
-            sys.exit(f"Server '{name}': provision_file not found: {provision}")
+
+        target = s["target"]
+        if target not in ("aws", "homelab"):
+            sys.exit(f"Endpoint '{name}': target must be 'aws' or 'homelab', got '{target}'.")
+        if target == "aws":
+            if s.get("region") not in tf.SUPPORTED_REGIONS:
+                sys.exit(
+                    f"Endpoint '{name}' (aws) uses unsupported/missing region '{s.get('region')}'. "
+                    f"Supported: {', '.join(tf.SUPPORTED_REGIONS)}."
+                )
+        elif not s.get("docker_image"):
+            sys.exit(f"Endpoint '{name}' (homelab) is missing required field 'docker_image'.")
+
+        payload = (project_root / s["payload_dir"]).resolve()
+        if not payload.is_dir():
+            sys.exit(f"Endpoint '{name}': payload_dir not found: {payload}")
+        if not (payload / "run").is_file():
+            sys.exit(f"Endpoint '{name}': payload_dir must contain an executable 'run': {payload}")
+
+
+def _listener_source() -> str:
+    """The packaged listener served standalone on each endpoint as server.py."""
+    return (resources.files("khazad_dum") / "listener" / "server.py").read_text()
+
+
+def _bootstrap_text(target: str, role: str, port: int) -> str:
+    """Generate the per-endpoint bootstrap.sh that provisioning runs (as root).
+
+    It lays the listener + payload down under /opt/khazad-dum, runs the payload's
+    optional provision.sh, and writes the listener config. On AWS it installs the
+    listener as a systemd service; on homelab the container's own command launches
+    it once the config file appears (so config is written last there).
+    """
+    common = (
+        '#!/usr/bin/env bash\n'
+        'set -euo pipefail\n'
+        'HERE="$(cd "$(dirname "$0")" && pwd)"\n'
+        'DEST=/opt/khazad-dum\n'
+        'mkdir -p "$DEST/experiment"\n'
+        'cp "$HERE/server.py" "$DEST/server.py"\n'
+        'cp -R "$HERE/payload/." "$DEST/experiment/"\n'
+        'chmod +x "$DEST/experiment/run" 2>/dev/null || true\n'
+        'command -v python3 >/dev/null 2>&1 || { apt-get update -y && apt-get install -y python3; }\n'
+        'if [ -f "$DEST/experiment/provision.sh" ]; then bash "$DEST/experiment/provision.sh"; fi\n'
+    )
+    write_config = (
+        f'cat > "$DEST/listener.config.json" <<\'JSON\'\n'
+        f'{{"role": "{role}", "port": {port}, "payload_dir": "/opt/khazad-dum/experiment"}}\n'
+        f'JSON\n'
+    )
+    if target == "aws":
+        systemd = (
+            "cat > /etc/systemd/system/khazad-listener.service <<'UNIT'\n"
+            "[Unit]\n"
+            "Description=khazad-dum experiment listener\n"
+            "After=network.target\n"
+            "[Service]\n"
+            "Environment=KHAZAD_LISTENER_CONFIG=/opt/khazad-dum/listener.config.json\n"
+            "ExecStart=/usr/bin/python3 /opt/khazad-dum/server.py\n"
+            "Restart=always\n"
+            "[Install]\n"
+            "WantedBy=multi-user.target\n"
+            "UNIT\n"
+            "systemctl daemon-reload\n"
+            "systemctl enable --now khazad-listener.service\n"
+        )
+        return common + write_config + systemd
+    # homelab: the container command waits for server.py + config, so write
+    # config last (after the payload's provisioning has finished).
+    return common + write_config
 
 
 def cmd_build(args: argparse.Namespace) -> None:
@@ -322,31 +421,45 @@ def cmd_build(args: argparse.Namespace) -> None:
     tf.ensure_tf_home()
     tf.generate_ssh_keys(experiment)
 
+    listener_text = _listener_source()
     data = tf.load_servers()
     # Replace this experiment's entries, leaving other experiments untouched.
     data["servers"] = {
         k: v for k, v in data["servers"].items() if v.get("experiment") != experiment
     }
     for s in servers:
-        key = f"{experiment}__{s['name']}"
-        data["servers"][key] = {
+        bundle = tf.stage_bundle(
+            experiment,
+            s["name"],
+            (project_root / s["payload_dir"]).resolve(),
+            listener_text,
+            _bootstrap_text(s["target"], s["role"], tf.LISTENER_PORT),
+        )
+        entry = {
             "name": s["name"],
-            "region": s["region"],
             "experiment": experiment,
-            "provision_file": str((project_root / s["provision_file"]).resolve()),
-            "instance_type": tf.DEFAULT_INSTANCE_TYPE,
+            "target": s["target"],
+            "role": s["role"],
+            "bundle_dir": str(bundle),
+            "listener_port": tf.LISTENER_PORT,
         }
+        if s["target"] == "aws":
+            entry["region"] = s["region"]
+            entry["instance_type"] = tf.DEFAULT_INSTANCE_TYPE
+        else:
+            entry["docker_image"] = s["docker_image"]
+        data["servers"][f"{experiment}__{s['name']}"] = entry
     tf.save_servers(data)
 
-    print(f"[khazad-dum] Building experiment '{experiment}' ({len(servers)} server(s))...")
-    env = tf.aws_env()
+    print(f"[khazad-dum] Building experiment '{experiment}' ({len(servers)} endpoint(s))...")
+    env = tf.tf_env()
     tf.init(env)
     tf.apply(env)
 
-    outputs = tf.output_servers(env)
-    mine = {k: v for k, v in outputs.items() if v.get("experiment") == experiment}
+    endpoints = tf.output_endpoints(env)
+    mine = {k: v for k, v in endpoints.items() if v.get("experiment") == experiment}
     if not mine:
-        print("[khazad-dum] No server outputs found; skipping summary prompt.")
+        print("[khazad-dum] No endpoint outputs found; skipping summary prompt.")
         return
 
     prompt = _build_summary_prompt(experiment, mine)
@@ -376,8 +489,8 @@ def cmd_destroy(args: argparse.Namespace) -> None:
         return
     tf.save_servers(data)
 
-    print(f"[khazad-dum] Destroying {removed} server(s) for experiment '{experiment}'...")
-    env = tf.aws_env()
+    print(f"[khazad-dum] Destroying {removed} endpoint(s) for experiment '{experiment}'...")
+    env = tf.tf_env()
     tf.init(env)
     tf.apply(env)
 
@@ -387,17 +500,176 @@ def cmd_destroy(args: argparse.Namespace) -> None:
     print(f"[khazad-dum] Experiment '{experiment}' destroyed.")
 
 
-def _build_summary_prompt(experiment: str, servers: dict) -> str:
+# ── Experiment control plane: run → fetch → graph → report ────────────────────
+
+def _experiment_endpoints(project_root: Path) -> dict:
+    """Endpoints for this experiment, read from terraform outputs (over Twingate)."""
+    tf.ensure_tf_home()
+    endpoints = tf.output_endpoints(tf.tf_env())
+    mine = {k: v for k, v in endpoints.items() if v.get("experiment") == project_root.name}
+    if not mine:
+        sys.exit(
+            "No provisioned endpoints found for this experiment. "
+            "Run `khazad-dum build experiment` first."
+        )
+    return mine
+
+
+def _listener_url(endpoint: dict, path: str) -> str:
+    return f"http://{endpoint['address']}:{endpoint['listener_port']}{path}"
+
+
+def _http(url: str, *, method: str, data: bytes | None = None, timeout: int = 30) -> bytes:
+    req = urllib.request.Request(url, data=data, method=method)
+    if data is not None:
+        req.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 (trusted, over Twingate)
+        return resp.read()
+
+
+def cmd_start(args: argparse.Namespace) -> None:
+    project_root = _project_root()
+    _require_init(project_root)
+    endpoints = _experiment_endpoints(project_root)
+
+    # The client (e.g. role "local") needs the server's address as its peer; in
+    # the two-endpoint model each endpoint's peer is simply the other one.
+    addr_by_role: dict[str, str] = {}
+    for v in endpoints.values():
+        addr_by_role.setdefault(v["role"], v["address"])
+
+    for ep in sorted(endpoints.values(), key=lambda s: s["name"]):
+        peer = next((a for r, a in addr_by_role.items() if r != ep["role"]), "")
+        body = json.dumps({"peer_addr": peer}).encode()
+        try:
+            _http(_listener_url(ep, "/run"), method="POST", data=body)
+        except urllib.error.HTTPError as exc:
+            sys.exit(f"[khazad-dum] {ep['name']}: listener rejected /run ({exc.code} {exc.reason}).")
+        except (urllib.error.URLError, OSError) as exc:
+            sys.exit(
+                f"[khazad-dum] {ep['name']}: cannot reach listener at {ep['address']} "
+                f"({exc}). Is the Twingate client up?"
+            )
+        print(f"[khazad-dum] {ep['name']}: experiment started (peer={peer or '-'}).")
+
+    _poll_until_done(endpoints, timeout=args.timeout)
+
+
+def _poll_until_done(endpoints: dict, *, timeout: int) -> None:
+    pending = {ep["name"]: ep for ep in endpoints.values()}
+    deadline = time.time() + timeout
+    while pending and time.time() < deadline:
+        time.sleep(5)
+        for name, ep in list(pending.items()):
+            try:
+                status = json.loads(_http(_listener_url(ep, "/status"), method="GET"))
+            except (urllib.error.URLError, OSError):
+                continue
+            state = status.get("state")
+            if state in ("done", "failed"):
+                print(f"[khazad-dum] {name}: {state} (exit {status.get('exit_code')}).")
+                pending.pop(name)
+    if pending:
+        print(f"[khazad-dum] Timed out waiting for: {', '.join(pending)}. Fetch later with `fetch`.")
+    else:
+        print("[khazad-dum] All endpoints finished. Run `khazad-dum fetch experiment`.")
+
+
+def cmd_fetch(args: argparse.Namespace) -> None:
+    project_root = _project_root()
+    _require_init(project_root)
+    endpoints = _experiment_endpoints(project_root)
+
+    results_root = _docs_root(project_root) / EXPERIMENT_DIR / "process" / RESULTS_DIR_NAME
+    for ep in sorted(endpoints.values(), key=lambda s: s["name"]):
+        try:
+            blob = _http(_listener_url(ep, "/results"), method="GET", timeout=120)
+        except urllib.error.HTTPError as exc:
+            print(f"[khazad-dum] {ep['name']}: no results yet ({exc.code} {exc.reason}).")
+            continue
+        except (urllib.error.URLError, OSError) as exc:
+            print(f"[khazad-dum] {ep['name']}: cannot reach listener ({exc}).")
+            continue
+        dest = results_root / ep["name"]
+        _extract_results(blob, dest)
+        print(f"[khazad-dum] {ep['name']}: results -> {dest.relative_to(project_root)}")
+
+
+def _extract_results(tar_bytes: bytes, dest: Path) -> None:
+    """Extract a listener results.tar.gz into dest, stripping the leading
+    ``results/`` arc component so files land directly under dest."""
+    if dest.exists():
+        shutil.rmtree(dest)
+    dest.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r:gz") as tar:
+        for member in tar.getmembers():
+            parts = member.name.split("/")
+            if parts and parts[0] == "results":
+                parts = parts[1:]
+            if not parts or not parts[0]:
+                continue
+            member.name = "/".join(parts)
+            tar.extract(member, dest)  # noqa: S202 (trusted source over Twingate)
+
+
+def _build_experiment_analysis_prompt(sub_prompt: str, project_root: Path) -> str:
+    prompt = _template_text(f"{EXPERIMENT_DIR}/prompts/{sub_prompt}.md")
+    scope_path = _docs_root(project_root) / EXPERIMENT_DIR / "input" / "scope.md"
+    scope = scope_path.read_text() if scope_path.exists() else ""
+    results_dir = _docs_root(project_root) / EXPERIMENT_DIR / "process" / RESULTS_DIR_NAME
+    manifest = sorted(
+        str(p.relative_to(project_root))
+        for p in results_dir.rglob("*")
+        if p.is_file()
+    )
+    parts = [prompt]
+    if scope:
+        parts.append(f"---\n\n## Project Description\n\n{scope}")
+    if manifest:
+        listing = "\n".join(f"- {m}" for m in manifest)
+        parts.append(f"---\n\n## Fetched result files\n\n{listing}")
+    for tname in _SUB_PROMPT_TEMPLATES.get(sub_prompt, ()):
+        tmpl = _template_text(f"{EXPERIMENT_DIR}/templates/{tname}.md")
+        parts.append(f"---\n\n## Template\n\n{tmpl}")
+    return "\n\n".join(parts)
+
+
+def _run_experiment_analysis(sub_prompt: str, label: str) -> None:
+    project_root = _project_root()
+    _require_init(project_root)
+    results_dir = _docs_root(project_root) / EXPERIMENT_DIR / "process" / RESULTS_DIR_NAME
+    if not results_dir.is_dir() or not any(results_dir.rglob("*")):
+        sys.exit("No fetched results found. Run `khazad-dum fetch experiment` first.")
+    prompt = _build_experiment_analysis_prompt(sub_prompt, project_root)
+    tokens = assert_within_limit(prompt)
+    print(f"[khazad-dum] {label}: {tokens} tokens (limit {MAX_TOKENS}).")
+    result = _invoke(prompt, project_root)
+    if result.is_error:
+        print(f"[khazad-dum] claude reported an error ({result.subtype or 'unknown'}).")
+        sys.exit(1)
+
+
+def cmd_graph(args: argparse.Namespace) -> None:
+    _run_experiment_analysis("analyse-results", "Graphing experiment results")
+
+
+def cmd_report(args: argparse.Namespace) -> None:
+    _run_experiment_analysis("experiment-report", "Writing experiment report")
+
+
+def _build_summary_prompt(experiment: str, endpoints: dict) -> str:
     prompt = _template_text(f"{EXPERIMENT_DIR}/prompts/summary.md")
     template = _template_text(f"{EXPERIMENT_DIR}/templates/summary.md")
 
     key_path = tf.KEYS_DIR / experiment / "id_rsa"
     lines: list[str] = []
-    for info in sorted(servers.values(), key=lambda s: s["name"]):
-        lines.append(f"- **{info['name']}** ({info['region']})")
-        lines.append(f"  - public IP: {info['public_ip']}")
-        lines.append(f"  - public DNS: {info['public_dns']}")
-        lines.append(f"  - ssh: `ssh -i {key_path} ubuntu@{info['public_ip']}`")
+    for info in sorted(endpoints.values(), key=lambda s: s["name"]):
+        lines.append(f"- **{info['name']}** — {info['target']} / role={info['role']}")
+        lines.append(
+            f"  - Twingate address: {info['address']} (listener port {info['listener_port']})"
+        )
+        if info.get("public_ip"):  # AWS endpoints only
+            lines.append(f"  - ssh: `ssh -i {key_path} ubuntu@{info['public_ip']}`")
     rendered = template.replace("{{EXPERIMENT}}", experiment).replace(
         "{{SERVERS}}", "\n".join(lines)
     )
@@ -432,6 +704,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_destroy = sub.add_parser("destroy", help="Tear down infrastructure for a phase.")
     p_destroy.add_argument("target", choices=["experiment"], help="What to destroy.")
     p_destroy.set_defaults(func=cmd_destroy)
+
+    # Experiment control plane: build → start → fetch → graph → report.
+    p_start = sub.add_parser("start", help="Trigger the experiment run on each endpoint (over Twingate).")
+    p_start.add_argument("target", choices=["experiment"], help="What to start.")
+    p_start.add_argument("--timeout", type=int, default=1800, help="Seconds to wait for runs to finish (default 1800).")
+    p_start.set_defaults(func=cmd_start)
+
+    p_fetch = sub.add_parser("fetch", help="Fetch results from each endpoint into process/results/.")
+    p_fetch.add_argument("target", choices=["experiment"], help="What to fetch.")
+    p_fetch.set_defaults(func=cmd_fetch)
+
+    p_graph = sub.add_parser("graph", help="Graph fetched results (python stats/plots) into output/graphs/.")
+    p_graph.add_argument("target", choices=["experiment"], help="What to graph.")
+    p_graph.set_defaults(func=cmd_graph)
+
+    p_report = sub.add_parser("report", help="Write the experiment report into output/.")
+    p_report.add_argument("target", choices=["experiment"], help="What to report on.")
+    p_report.set_defaults(func=cmd_report)
 
     p_tokens = sub.add_parser("tokens", help="Count tokens in a file or stdin.")
     p_tokens.add_argument("file", nargs="?", help="Path to a file. If omitted, reads stdin.")

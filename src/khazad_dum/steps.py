@@ -28,7 +28,10 @@ STEPS: list[Step] = [
         "create-post-literature-review-questionnaire",
         "next-steps",
     )),
-    Step(2, "experiment", "Experiment"),
+    Step(2, "experiment", "Experiment", sub_prompts=(
+        "experiment-decision",
+        "complete-experiment-step",
+    )),
     Step(3, "architecture", "Architecture"),
     Step(4, "project_management", "Project Management"),
     Step(5, "developer_orchestration", "Developer Orchestration"),

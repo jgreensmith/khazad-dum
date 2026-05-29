@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from importlib import resources
@@ -10,7 +11,11 @@ from pathlib import Path
 
 TF_HOME = Path.home() / ".khazad-dum" / "terraform"
 KEYS_DIR = TF_HOME / "keys"
+BUNDLES_DIR = TF_HOME / "bundles"
 SERVERS_TFVARS = TF_HOME / "servers.auto.tfvars.json"
+
+# Control port the listener binds on every endpoint (reached over Twingate).
+LISTENER_PORT = 8080
 
 # Must mirror the provider/module blocks in terraform/main.tf.
 SUPPORTED_REGIONS = (
@@ -25,6 +30,13 @@ DEFAULT_INSTANCE_TYPE = "t3.micro"
 
 OP_ACCESS_KEY_REF = "op://Private/AWS_CLI/access_key_id"
 OP_SECRET_KEY_REF = "op://Private/AWS_CLI/secret_access_key"
+
+# Twingate settings, injected as TF_VAR_* for the provider, the connector
+# user_data, and the homelab resource. A pre-set TF_VAR_* in the environment
+# wins, so these 1Password items are only read when not already provided.
+OP_TG_API_TOKEN_REF = "op://Private/Twingate/api_token"
+OP_TG_NETWORK_REF = "op://Private/Twingate/network"
+OP_TG_HOMELAB_NETWORK_REF = "op://Private/Twingate/homelab_remote_network"
 
 
 def _copy_tree(src, dst: Path) -> None:
@@ -94,11 +106,26 @@ def _op_read(ref: str) -> str:
     return result.stdout.strip()
 
 
-def aws_env() -> dict[str, str]:
-    """Return os.environ with AWS creds injected from 1Password (provider + backend)."""
+def _set_var_default(env: dict[str, str], key: str, op_ref: str) -> None:
+    """Set env[key] from 1Password unless the caller already provided it."""
+    if not env.get(key):
+        env[key] = _op_read(op_ref)
+
+
+def tf_env() -> dict[str, str]:
+    """os.environ with AWS creds + Twingate TF_VARs injected from 1Password.
+
+    AWS creds feed the provider and the MinIO/S3 backend. The ``TF_VAR_tg_*``
+    values feed the Twingate provider, the connector user_data, and the homelab
+    resource. Any ``TF_VAR_*`` already set in the environment is left untouched,
+    so a user can bypass 1Password by exporting them directly.
+    """
     env = os.environ.copy()
     env["AWS_ACCESS_KEY_ID"] = _op_read(OP_ACCESS_KEY_REF)
     env["AWS_SECRET_ACCESS_KEY"] = _op_read(OP_SECRET_KEY_REF)
+    _set_var_default(env, "TF_VAR_tg_api_token", OP_TG_API_TOKEN_REF)
+    _set_var_default(env, "TF_VAR_tg_network", OP_TG_NETWORK_REF)
+    _set_var_default(env, "TF_VAR_tg_homelab_remote_network", OP_TG_HOMELAB_NETWORK_REF)
     return env
 
 
@@ -119,10 +146,10 @@ def apply(env: dict[str, str]) -> None:
         sys.exit("terraform apply failed.")
 
 
-def output_servers(env: dict[str, str]) -> dict:
+def _output_json(name: str, env: dict[str, str]) -> dict:
     try:
         result = subprocess.run(
-            ["terraform", "output", "-json", "servers"],
+            ["terraform", "output", "-json", name],
             cwd=TF_HOME, env=env, capture_output=True, text=True,
         )
     except FileNotFoundError:
@@ -130,3 +157,42 @@ def output_servers(env: dict[str, str]) -> dict:
     if result.returncode != 0 or not result.stdout.strip():
         return {}
     return json.loads(result.stdout)
+
+
+def output_servers(env: dict[str, str]) -> dict:
+    """AWS endpoints (with public_ip/dns) for the build-time SSH summary."""
+    return _output_json("servers", env)
+
+
+def output_endpoints(env: dict[str, str]) -> dict:
+    """All endpoints (AWS + homelab) the control plane reaches over Twingate.
+
+    Each value has at least {name, experiment, target, role, address,
+    listener_port}; ``address`` is what khazad-dum dials over the tunnel.
+    """
+    return _output_json("endpoints", env)
+
+
+def stage_bundle(
+    experiment: str,
+    name: str,
+    payload_dir: Path,
+    listener_text: str,
+    bootstrap_text: str,
+) -> Path:
+    """Assemble a per-endpoint provisioning bundle under the TF home.
+
+    The bundle is the directory Terraform delivers to the host/container:
+    ``server.py`` (the fixed listener), ``payload/`` (the project's experiment
+    code), and a generated ``bootstrap.sh``. Returns the bundle directory.
+    """
+    bundle = BUNDLES_DIR / f"{experiment}__{name}"
+    if bundle.exists():
+        shutil.rmtree(bundle)
+    bundle.mkdir(parents=True, exist_ok=True)
+    (bundle / "server.py").write_text(listener_text)
+    _copy_tree(payload_dir, bundle / "payload")
+    bootstrap = bundle / "bootstrap.sh"
+    bootstrap.write_text(bootstrap_text)
+    bootstrap.chmod(0o755)
+    return bundle

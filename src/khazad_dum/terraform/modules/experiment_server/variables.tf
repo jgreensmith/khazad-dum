@@ -1,11 +1,13 @@
 variable "servers" {
-  description = "Servers to create in this region, keyed by <experiment>__<name>."
+  description = "AWS experiment servers to create, keyed by <experiment>__<name>."
   type = map(object({
-    name           = string
-    region         = string
-    experiment     = string
-    provision_file = string
-    instance_type  = string
+    name          = string
+    region        = string
+    experiment    = string
+    instance_type = string
+    role          = string # "remote" (server side) for AWS endpoints
+    bundle_dir    = string # local dir staged by khazad-dum (listener + payload + bootstrap.sh)
+    listener_port = number # control port the khazad-dum listener binds
   }))
   default = {}
 }
