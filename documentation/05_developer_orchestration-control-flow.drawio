@@ -1,0 +1,365 @@
+<mxfile host="app.diagrams.net" agent="khazad-dum" version="24.0.0">
+  <diagram name="2.1 Developer Orchestration" id="dev-orchestration-flow">
+    <mxGraphModel dx="1422" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1750" pageHeight="2950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Phase 2 · Step 2.1 — Developer Orchestration (deterministic TDD pipeline, run per feature scope.md)" style="text;html=1;fontSize=16;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="360" y="20" width="960" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== SPINE ===================== -->
+        <mxCell id="start" value="Per feature:&#10;khazad-dum selects documentation/features/&lt;feat&gt;/scope.md&#10;&#8594; checks out the feature branch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="100" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="genb" value="khazad-dum reads scope.md&#10;Existing Code &amp; Refactoring:&#10;enabling refactor required?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="210" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w8" value="Workflow 2.1.8&#10;Enabling Refactor Phase&#10;behaviour-preserving reshape of existing code" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="200" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g8" value="khazad-dum gate&#10;compiles · WHOLE existing&#10;suite still green · clippy · fmt?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="330" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note8" value="g8 pass &#8594; khazad-dum commits&#10;the refactor (tidy-first)&#10;BEFORE design" style="shape=note;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="335" width="190" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w1" value="Workflow 2.1.1&#10;Design Phase&#10;skeleton: new types &amp; new methods on&#10;existing types · todo!() bodies" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="370" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g1" value="khazad-dum gate&#10;cargo build&#10;compiles?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="490" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w2" value="Workflow 2.1.2&#10;Red Phase: End-to-End Tests&#10;(e2e_tests crate)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="650" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g2" value="khazad-dum gate&#10;tests build · NEW e2e&#10;FAIL · existing pass?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="770" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w3" value="Workflow 2.1.3&#10;Red Phase: Unit Tests&#10;(#[cfg(test)] modules)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="930" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g3" value="khazad-dum gate&#10;tests build · NEW unit&#10;FAIL · existing pass?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1050" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w4" value="Workflow 2.1.4&#10;Red Review Phase&#10;certainty score + deficiency list" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1210" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g4" value="khazad-dum gate&#10;review certainty&#10;&#8805; threshold?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1330" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w6" value="Workflow 2.1.6&#10;Green Phase&#10;production code to pass ALL tests" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1490" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g6" value="khazad-dum gate&#10;ALL tests pass ·&#10;clippy clean · fmt?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1610" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w9" value="Workflow 2.1.9&#10;Cleanup Refactor Phase&#10;tidy this feature&#39;s code (no-op allowed)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1770" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g9" value="khazad-dum gate&#10;prior green set unchanged&#10;· clippy · fmt?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1890" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w9revert" value="cleanup is NON-blocking:&#10;escalation ladder applies, but on&#10;exhaustion khazad-dum REVERTS to&#10;the green commit and proceeds" style="shape=note;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1890" width="240" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="done" value="Gate passed&#10;khazad-dum commits &#8594; push / PR&#10;feature delivered" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="2050" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="more" value="more features&#10;to build?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="2180" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phase22" value="All features delivered&#10;&#8594; Step 2.2 Delivery &amp; Maintenance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="2340" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== RED EDIT LOOP (left column) ===================== -->
+        <!-- Top-to-bottom in left col: g5, w5, rlguard — flow is UPWARD (loop) -->
+        <mxCell id="g5" value="khazad-dum gate&#10;tests compile · still&#10;FAIL · existing pass?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1050" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="w5" value="Workflow 2.1.5&#10;Red Edit Phase&#10;fix ONLY flagged tests" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1210" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rlguard" value="khazad-dum&#10;review-loop guard&#10;exhausted?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1330" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== ESCALATION LADDER (right-centre column) ===================== -->
+        <mxCell id="escEntry" value="ESCALATION LADDER&#10;a build/test gate failed" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="820" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rerunNote" value="&#8635; re-invoke the failed workflow&#10;same tier &#8594; next tier&#10;(haiku/med &#8594; sonnet/med &#8594; opus/high)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="970" width="190" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="escRetry" value="retries left&#10;at current tier?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="970" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="escClimb" value="higher tier&#10;available?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="1160" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="escExhaust" value="failing gate&#10;= Green phase?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="1360" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== DIAGNOSIS (far-right column) ===================== -->
+        <mxCell id="w7" value="Workflow 2.1.7&#10;Green Diagnosis Phase&#10;classify the blocker" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="1490" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="verdict" value="diagnosis&#10;verdict?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="1610" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="human" value="Human blocker&#10;khazad-dum hands the feature to a person" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="1810" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="LEGEND&#10;&#10;&#9644; Blue  = agent workflow (claude -p, tier-agnostic; never runs git, never names a model)&#10;&#9670; Orange = khazad-dum gate / decision (runs the project&#39;s test_commands — the REAL result, not the agent&#39;s self-report)&#10;&#9679; Green  = start / success terminal      &#9679; Red = human escalation      &#9633; Purple note = special handling&#10;&#10;TDD beat = Red &#8594; Green &#8594; Refactor. Both refactor workflows (2.1.8 enabling, 2.1.9 cleanup) are BEHAVIOUR-PRESERVING:&#10;they change structure, never what a test asserts. A slice that must CHANGE existing behaviour is routed to a human (not automated).&#10;Refactor failure asymmetry: enabling-refactor (2.1.8) fail &#8594; human (blocks); cleanup-refactor (2.1.9) fail &#8594; revert to green commit &amp; proceed (non-blocking).&#10;&#10;khazad-dum owns ALL version control: checks out feature branch, commits at each passed gate, pushes / opens the PR at the end.&#10;Escalation ladder (every build/test gate): retry at same tier within a per-tier budget, then climb haiku/medium &#8594; sonnet/medium &#8594; opus/high &#8594; human.&#10;All thresholds / budgets / loop-guards / refactor enable-flags live in .khazad-dum/config.json. Each workflow writes one report to .khazad-dum/orchestration_log/&lt;feature&gt;/." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="200" y="2460" width="1300" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== EDGES: spine happy path ===================== -->
+        <mxCell id="e_start_genb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="start" target="genb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_genb_w1" value="no (purely additive)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="genb" target="w1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_genb_w8" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="genb" target="w8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_w8_g8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w8" target="g8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g8_note8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;startArrow=none;endArrow=none;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g8" target="note8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g8_w1" value="pass &#8594; ready" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g8" target="w1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g8_esc" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g8" target="escEntry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="790" />
+              <mxPoint x="980" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_w1_g1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w1" target="g1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g1_w2" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g1" target="w2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_w2_g2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w2" target="g2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g2_w3" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g2" target="w3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_w3_g3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w3" target="g3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g3_w4" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g3" target="w4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_w4_g4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w4" target="g4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g4_w6" value="yes (&#8805; threshold)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g4" target="w6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_w6_g6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w6" target="g6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g6_w9" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g6" target="w9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_w9_g9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w9" target="g9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g9_done" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g9" target="done">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g9_revert" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g9" target="w9revert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_revert_done" value="revert &#8594; proceed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="w9revert" target="done">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="2085" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_done_more" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="done" target="more">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_more_phase22" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="more" target="phase22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Loop back: more → start via far-right corridor (x=1620) -->
+        <mxCell id="e_more_start" value="yes &#8635; next feature" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="more" target="start">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1620" y="2230" />
+              <mxPoint x="1620" y="135" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===================== EDGES: certainty / red-edit loop ===================== -->
+        <mxCell id="e_g4_rlguard" value="no (&lt; threshold)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g4" target="rlguard">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rlguard_w5" value="no &#8594; edit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="rlguard" target="w5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_w5_g5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="w5" target="g5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_g5_w4" value="yes &#8594; re-review" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g5" target="w4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rlguard_human" value="yes &#8594; escalate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rlguard" target="human">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="20" y="1380" />
+              <mxPoint x="20" y="1845" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===================== EDGES: gate failures → escalation ladder ===================== -->
+        <mxCell id="e_g1_esc" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="g1" target="escEntry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="540" />
+              <mxPoint x="760" y="841" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_g2_esc" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="g2" target="escEntry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="820" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_g3_esc" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="g3" target="escEntry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="1100" />
+              <mxPoint x="720" y="890" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_g5_esc" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="g5" target="escEntry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="150" y="740" />
+              <mxPoint x="800" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_g6_esc" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g6" target="escEntry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="1660" />
+              <mxPoint x="1180" y="855" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===================== EDGES: escalation ladder internals ===================== -->
+        <mxCell id="e_esc_retry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="escEntry" target="escRetry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_retry_rerun" value="yes (retry same tier)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="escRetry" target="rerunNote">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_retry_climb" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="escRetry" target="escClimb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_climb_rerun" value="yes (climb tier)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="escClimb" target="rerunNote">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_climb_exhaust" value="no (top tier)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="escClimb" target="escExhaust">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_exhaust_w7" value="yes &#8594; diagnose" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="escExhaust" target="w7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="1475" />
+              <mxPoint x="1370" y="1475" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_exhaust_human" value="no &#8594; human" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="escExhaust" target="human">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1160" y="1410" />
+              <mxPoint x="1160" y="1845" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===================== EDGES: diagnosis verdict routing ===================== -->
+        <mxCell id="e_w7_verdict" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="w7" target="verdict">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_verdict_w5" value="test-defect (kickback &#215;1)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="verdict" target="w5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1210" y="1660" />
+              <mxPoint x="1210" y="2010" />
+              <mxPoint x="10" y="2010" />
+              <mxPoint x="10" y="1240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_verdict_human1" value="scope-defect" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="verdict" target="human">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_verdict_human2" value="impl-hard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="verdict" target="human">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1560" y="1660" />
+              <mxPoint x="1560" y="1845" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -5,6 +5,12 @@ feature's **scope.md** as your complete specification, design the structural ske
 feature only**: the modules, types, traits, and method signatures it needs — with no behaviour. The
 result must compile.
 
+The feature may need brand-**new** types/modules, **new methods or variants on existing** types, or
+(typically) both — adding a new `impl` method, a new enum variant, or a new trait impl to existing
+code is expected and fine. What you must **not** do here is change the *behaviour* or *signatures* of
+existing code. If existing code needed reshaping to host this feature, that has already happened in
+the Enabling Refactor phase (2.1.8) that ran before you — build on its result.
+
 ## Inputs (read-only context)
 - The provided **scope.md** for this feature — its Summary, End-to-End Behaviour (per layer),
   Acceptance Criteria, Contracts & Data, Dependencies, and Out of Scope. Design to it. Read only the
@@ -24,8 +30,9 @@ result must compile.
 #### Leave all behaviour unimplemented
 - New method bodies are placeholders only: `todo!()` or `unimplemented!()`. No logic, no control
   flow, no I/O.
-- Add **only** the new code this feature needs. Do **not** delete or rewrite existing code, and do
-  **not** add or modify any tests — tests come in the Red phases.
+- Add **only** the new code this feature needs — new items, or new methods/variants/impls on
+  existing types, count as adding. Do **not** delete, rewrite, or change the behaviour or signatures
+  of existing code, and do **not** add or modify any tests — tests come in the Red phases.
 
 #### Must compile
 - The skeleton must build cleanly. Get signatures, imports, and module wiring correct enough that the

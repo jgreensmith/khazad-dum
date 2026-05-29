@@ -50,8 +50,16 @@ buildable and testable piece of behaviour.
 - Map **dependencies and conflicts** between slices: which must be built in series (one depends on
   another), and which are **parallel-safe** (no ordering dependency and no overlapping
   files/modules, so two branches could be worked at once without conflict).
+- **Classify each slice against existing code.** Decide whether it is `new-only`, `extends-existing`
+  (adds methods/variants/impls to existing types without changing them), or
+  `requires-enabling-refactor` (existing code must be **behaviour-preservingly** reshaped first so
+  the slice fits). Note the existing types/modules it touches and the enabling refactor it needs. If
+  a slice would have to **change existing behaviour** (not just structure), flag it as **human-led** —
+  the build phase only performs behaviour-preserving refactoring, so prefer to slice such that any
+  behaviour change is isolated and explicitly flagged.
 - **Self-assess certainty per slice** (0–100%): your confidence that you understand that slice's
-  end-to-end requirements. Below **97%** ⇒ it must be queried in this cycle's questionnaire.
+  end-to-end requirements **and its impact on existing code** (what it extends, and any enabling
+  refactor it needs). Below **97%** ⇒ it must be queried in this cycle's questionnaire.
 
 ## Step 3 — Create / refine the slice artifacts (every cycle)
 On cycle 1 these are first drafts; on later cycles, refine them in light of the newest `input/`.
@@ -62,8 +70,10 @@ On cycle 1 these are first drafts; on later cycles, refine them in light of the 
    parallel-safety and **% certainty**.
 2. **Per-feature scope docs** → `$CWD/documentation/features/<feat-name>/scope.md` (one directory per
    slice), using the provided **feature scope template**. Capture the exact end-to-end requirements so
-   the slice can be built and verified from this file alone. These live outside `documentation/04_*/`
-   on purpose — they are the hand-off into the real project.
+   the slice can be built and verified from this file alone — including its **Existing Code &
+   Refactoring** section (relationship to existing code, the types/modules it touches, and any
+   behaviour-preserving enabling refactor it needs before the feature). These live outside
+   `documentation/04_*/` on purpose — they are the hand-off into the real project.
 3. **Proposed branch plan** → `$CWD/documentation/04_project_management/process/branch-plan.json`, a
    machine-readable list of the proposed branches (one per slice) that `khazad-dum` will create when
    the human accepts the plan. This is a **proposal only** — do **not** run any `git` commands or

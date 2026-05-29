@@ -13,7 +13,7 @@ NOTE: `steps.py` wiring still shows the OLD research chain; rewiring is deferred
 | 2 | `02_experiment` | gate+complete (questionnaire loop) | **DONE** — gate drafts `servers.json`+scripts to `process/`, human promotes to `input/`; uses infra (terraform.md) |
 | 3 | `03_architecture` | loop+complete (**not** a certainty branch) | **DONE** — every cycle: questionnaire + C4 + DDD + skeleton proposal in `process/`; human advances; complete scaffolds skeleton in `$CWD` |
 | 4 | `04_project_management` | loop+complete (**per-slice** certainty, not a branch) | **DONE** — every cycle: questionnaire + ordered feature-scopes table + per-feature scope docs + branch plan; complete finalises + emits `branch-plan.json` for the CLI to branch from |
-| 5 | `05_developer_orchestration` | **deterministic TDD state machine** (7 phases, Phase 2) | **DONE** — see "Developer Orchestration" below |
+| 5 | `05_developer_orchestration` | **deterministic TDD state machine** (9 phases, Phase 2) | **DONE** — see "Developer Orchestration" below |
 | 6 | `06_delivery_and_maintenance` | single prompt (not a loop) | empty placeholder |
 
 Conceptual grouping (from `workflows/research-planning-phase.md`, the global prompt): Phase 1 = Research/Plan (steps 1–4),
@@ -65,21 +65,38 @@ the deterministic part** — after each agent run it executes the project's `tes
 `.khazad-dum/config.json`) as the *real* gate, owns all git, and drives every transition + escalation.
 The agent's self-reported "tests pass" is never trusted.
 
-**Seven phases** (`prompts/*-phase.md`, titled `Workflow 2.1.x`, all tier-agnostic):
-1. `2.1.1 design-phase` — skeleton (modules/types/sigs, `todo!()` bodies). Gate: `cargo build`.
-2. `2.1.2 red-phase-e2e` — e2e/integration tests in the `e2e_tests` crate from scope's acceptance
+**Nine phases** (`prompts/*-phase.md`, titled `Workflow 2.1.x`, all tier-agnostic). Numbering is a
+stable id, so the two refactor phases (2.1.8/2.1.9) and diagnosis (2.1.7) are not in numeric order;
+listed below in **execution** order:
+1. `2.1.8 enabling-refactor-phase` — *optional, runs FIRST and only when scope.md's **Existing Code &
+   Refactoring** section requires it.* Behaviour-preserving reshape of existing code so the feature
+   fits ("make the change easy"). No new tests, no feature code. Gate: compiles + WHOLE existing
+   suite still green + clippy + fmt; gets its own "tidy-first" commit before design.
+2. `2.1.1 design-phase` — skeleton (modules/types/sigs, `todo!()` bodies). May add new types OR new
+   methods/variants on existing types; never changes existing behaviour/signatures. Gate: `cargo build`.
+3. `2.1.2 red-phase-e2e` — e2e/integration tests in the `e2e_tests` crate from scope's acceptance
    criteria. Gate: tests build + new tests fail + existing pass.
-3. `2.1.3 red-phase-unit` — co-located `#[cfg(test)]` unit tests. Same red gate.
-4. `2.1.4 red-review-phase` — review-only; scores **certainty** that the tests capture scope's e2e
+4. `2.1.3 red-phase-unit` — co-located `#[cfg(test)]` unit tests. Same red gate.
+5. `2.1.4 red-review-phase` — review-only; scores **certainty** that the tests capture scope's e2e
    requirements + lists deficiencies (`review-report` template). Gate: certainty ≥ threshold → green;
    else → red-edit.
-5. `2.1.5 red-edit-phase` — fixes the flagged tests only, stays red → back to 2.1.4 (loop, bounded).
-6. `2.1.6 green-phase` — production code to pass ALL tests; never edits tests. Gate: all pass + clippy
+6. `2.1.5 red-edit-phase` — fixes the flagged tests only, stays red → back to 2.1.4 (loop, bounded).
+7. `2.1.6 green-phase` — production code to pass ALL tests; never edits tests. Gate: all pass + clippy
    + fmt.
-7. `2.1.7 green-diagnosis-phase` — runs only when green exhausts the escalation ladder; emits a
+8. `2.1.9 cleanup-refactor-phase` — *runs AFTER green passes.* The classic TDD third beat: tidy this
+   feature's code (dedup, extract, rename) behaviour-preservingly; a no-op is valid. Gate: prior green
+   set unchanged + clippy + fmt.
+9. `2.1.7 green-diagnosis-phase` — runs only when green exhausts the escalation ladder; emits a
    **verdict** `test-defect|scope-defect|impl-hard` (`diagnosis-report` template).
 
-**Pipeline:** design → red-e2e → red-unit → [red-review ↔ red-edit] → green → (on exhaustion) diagnosis.
+**Pipeline:** [enabling-refactor?] → design → red-e2e → red-unit → [red-review ↔ red-edit] → green →
+[cleanup-refactor] → (on green exhaustion) diagnosis.
+
+**Refactoring is behaviour-preserving only (for now)** — the shared rule lives in
+`active-build-phase.md`; a slice that must *change* existing behaviour is routed to a human, so the
+red gate's "existing tests still pass" invariant is never broken by a refactor. **Failure asymmetry:**
+enabling-refactor fail → human (blocks); cleanup-refactor fail → revert to the green commit and
+proceed (non-blocking — polish must not sink a passing feature).
 
 **Escalation (config, never in prompts):** on a gate fail, retry at the same tier up to a budget, then
 climb `haiku/medium → sonnet/medium → opus/high → human`. `khazad-dum` sets `--model`/`--effort`.
@@ -96,7 +113,8 @@ never run git.
 audit. All reports → `.khazad-dum/orchestration_log/<feature>/<workflow-id>-<slug>-{N}.md`.
 
 (Wiring — steps.py `sub_prompts`, the orchestration state machine, escalation, git, config knobs — is
-**deferred CLI work**; see CLAUDE.md. `prompts/refactor.md` is a stale leftover, not part of 2.1.x.)
+**deferred CLI work**; see CLAUDE.md. The old stale `prompts/refactor.md` has been deleted, superseded
+by `enabling-refactor-phase.md` + `cleanup-refactor-phase.md`.)
 
 Per-phase deliverables: research gate→literature review, complete→refined-project-plan +
 experiment-recommendations. experiment gate→**draft** server config + provision scripts (`process/`,
