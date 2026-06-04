@@ -15,10 +15,12 @@ the step-05 TDD orchestration engine).
 **Next up:** author the step 06 prompts/templates (delivery & maintenance).
 
 ## Wiring reality vs design
-`steps.py` still shows the **OLD** wiring: research has the old 4-prompt chain; experiment is the only
-step with new `sub_prompts` wired (`experiment-decision`, `complete-experiment-step`); architecture /
-PM / 05 / 06 have **no** `sub_prompts`. The per-step docs describe the **intended** design; the rewire
-is deferred (below).
+`steps.py`: **research rewired (2026-06-04)** to `(research-gate, draft-and-refine,
+complete-research-step)` with matching `_SUB_PROMPT_TEMPLATES`; experiment is wired
+(`experiment-decision`, `complete-experiment-step`); architecture / PM / 05 / 06 still have **no**
+`sub_prompts`. The per-step docs describe the **intended** design; the remaining rewires are deferred
+(below). **Loop control** (per-gate re-run + human-gated advance) is still deferred for every step —
+the linear runner walks each step's sub-prompts once.
 
 ## Deferred CLI work (do not do during prompt authoring unless asked)
 The whole CLI surface is in flux — the goal is a bare interactive `khazad-dum` that shows status /
@@ -34,8 +36,8 @@ interactive-CLI redesign.
 Still deferred:
 - **Prepend global prompts:** prepend `research-planning-phase.md` to every Phase 1 sub-prompt (steps
   1–4) and `active-build-phase.md` to every Phase 2 sub-prompt (steps 5–6), ahead of the per-workflow markdown.
-- **Rewire `steps.py` `sub_prompts`:** research → `(literature-review-decision, complete-research-step)`;
-  architecture → `(domain-modelling-loop, complete-architecture-step)`; project_management →
+- **Rewire `steps.py` `sub_prompts`:** ~~research~~ (done — `research-gate, draft-and-refine,
+  complete-research-step`); architecture → `(domain-modelling-loop, complete-architecture-step)`; project_management →
   `(vertical-slicing-loop, complete-project-management-step)`; developer_orchestration → the 9 phase
   states (not a linear run-once chain). Switches arch/PM `scope_template_path` to `project-description.md`;
   their stub `template.md` can then go. **Step 05 has no single step `scope.md`** — it iterates over
@@ -43,7 +45,8 @@ Still deferred:
 - **Loop control:** the gate/loop sub-prompt (1.1.1 / 1.2.1 / 1.3.1 / 1.4.1) must re-run across cycles
   without auto-advancing; track the cycle count and inject "cycle N"; the human advances to the
   complete sub-prompt explicitly.
-- **`cli._SUB_PROMPT_TEMPLATES`:** research gate → `questionnaire` + `literature-review`; experiment
+- **`cli._SUB_PROMPT_TEMPLATES`:** ~~research~~ (done — `research-gate`→`questionnaire`,
+  `draft-and-refine`→`literature-review` + `questionnaire`); experiment
   gate → `questionnaire`; architecture loop → `questionnaire` + `c4-diagram` + `ddd-table` +
   `skeleton-proposal`, complete → `detailed-project-description`; PM loop → `questionnaire` +
   `feature-scopes` + `scope`. Step 05: every 2.1.x phase gets `status-report` except 2.1.4
@@ -64,10 +67,10 @@ Still deferred:
   `servers.json`). The prompt only emits the artefact.
 - **`init` seeds `.khazad-dum/config.json`;** architecture's complete step writes `test_commands` into
   it (merge, don't clobber).
-- **Already deleted (no longer pending):** research `create-pre/post-literature-review-questionnaire.md`,
+- **Already deleted (no longer pending):** research `create-pre/post-literature-review-questionnaire.md`
+  + `literature-review-decision.md` (deleted 2026-06-04 in the research rewire),
   experiment `pre-experiment-questions.md` + `templates/experiment-plan.md`, architecture `prompts/prompt.md`,
   PM `prompts/prompt.md`, step-05 stale `prompts/refactor.md`.
-- Fix the `next-steps` vs `complete-research-step.md` name mismatch via the rewire above.
 
 ## Known gaps (background)
 - **README.md is stale:** documents an old `templates/prompts/NN.md` layout; real layout is

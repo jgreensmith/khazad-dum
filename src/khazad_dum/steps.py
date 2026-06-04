@@ -23,10 +23,9 @@ class Step:
 
 STEPS: list[Step] = [
     Step(1, "research", "Research", sub_prompts=(
-        "create-pre-literature-review-questionnaire",
-        "literature-review-decision",
-        "create-post-literature-review-questionnaire",
-        "next-steps",
+        "research-gate",
+        "draft-and-refine",
+        "complete-research-step",
     )),
     Step(2, "experiment", "Experiment", sub_prompts=(
         "experiment-decision",

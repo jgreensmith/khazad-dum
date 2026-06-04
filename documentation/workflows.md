@@ -26,7 +26,8 @@ Each = 2 sub-prompts:
 1. **gate** (loops): reads `input/` → hard critical analysis (actively find problems) →
    self-assess % certainty. If <98 → write a NEW numbered questionnaire to `process/`
    (`...-questionnaire-{N}.md`, N = existing count + 1) and stop. If ≥98 → produce the phase
-   deliverable. Gate files: research `literature-review-decision.md`, experiment `experiment-decision.md`.
+   deliverable. Gate file: experiment `experiment-decision.md`. (**Research diverges** — two hybrid
+   gates, deliverables staged in `process/` then promoted; see `.claude/docs/steps/01_research.md`.)
 2. **complete**: reads human-refined `input/` + the gate's deliverable → writes finalised
    handoff artifact(s) to `output/`. Files: `complete-research-step.md`, `complete-experiment-step.md`.
 
@@ -131,7 +132,8 @@ project description (iter 4) + scaffolded skeleton + `test_commands`.
   (`project-description.md` for sub-prompt steps, else `template.md`).
 
 ### Phase 1 prompt files (current, new pattern)
-- research: `prompts/literature-review-decision.md` (gate) + `complete-research-step.md` (complete).
+- research: `prompts/research-gate.md` (pre-review gate) + `draft-and-refine.md` (post-review gate +
+  the three `process/` deliverables) + `complete-research-step.md` (QC + promote to `output/`).
 - experiment: `prompts/experiment-decision.md` (gate) + `complete-experiment-step.md` (complete).
   `prompts/summary.md` is separate — the build-time infra briefing, not a phase workflow.
 - architecture: `prompts/domain-modelling-loop.md` (loop) + `complete-architecture-step.md` (complete).
@@ -168,7 +170,7 @@ AI does the heavy lifting; the human stays in control of the plan.
   Description**") — these are appended under `## Template` / `## Scope` / `## Project
   Description` headings by the prompt builder.
 - Citations (literature review): Obsidian-style `[Author, Year|source](URL)` + certainty &
-  reliability tags with the 🟩/🟨/🟧/🟥 percentage bands. See `literature-review-decision.md`.
+  reliability tags with the 🟩/🟨/🟧/🟥 percentage bands. See `draft-and-refine.md`.
 
 ## To finish a phase
 1. Write `prompts/prompt.md` (or named sub-prompt files).

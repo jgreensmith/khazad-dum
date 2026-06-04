@@ -1,35 +1,18 @@
-## Workflow 1.1.2 — Complete Research Step
+## Workflow 1.1.3 — Complete Research Step
 
-You run **after** the literature review is done and the human has refined the research plan in
-`input/` in light of it. Using the current `input/` plus the research outputs, produce two
-finalised handoff artifacts for the next phases: a **refined project plan** and **experiment
-recommendations**.
+The post-review gate has passed. Promote the finalised research artifacts from `process/` to `output/`
+after a final quality pass. This is the handoff to the Experiment phase. You add no new research — you
+verify and move.
 
-Your only outputs are the two files below.
+## Do this
+1. Read the three artifacts in `documentation/01_research/process/`: `literature-review.md`,
+   `refined-project-plan.md`, `experiment-recommendations.md`.
+2. **Final QC** (fix in place if quick; otherwise note the gap in the file):
+   - every literature-review claim has a source link + `*Certainty*` + `*Reliability*` tag with a band;
+   - the refined plan's scope (IN/OUT), success criteria, and open decisions are unambiguous;
+   - every experiment recommendation maps to AWS EC2 or the home-lab server and is concrete.
+3. Write the verified copies to `documentation/01_research/output/`: `literature-review.md`,
+   `refined-project-plan.md`, `experiment-recommendations.md`.
+4. Leave both questionnaires in `process/` — they are working artefacts, not handoff.
 
-## Inputs (read-only)
-- The provided **Project Description** (the human's current, refined research plan).
-- `$CWD/documentation/01_research/output/literature-review.md`.
-- Any questionnaires under `$CWD/documentation/01_research/process/` for additional context on
-  what was clarified.
-
-## Available experiment resources (hard constraint)
-The only resources available for any downstream experiment are:
-- **AWS EC2 instances** (provisioned by khazad-dum; default `t3.micro`).
-- **A home lab server.**
-Every experiment recommendation must be achievable with these. Do not recommend managed
-services, GPUs, or infrastructure outside this set unless you explicitly flag it as
-out-of-scope and explain the trade-off.
-
-## Output 1 — Refined Project Plan
-Save as `$CWD/documentation/01_research/output/refined-project-plan.md`.
-- Synthesise the input plan with what the literature review established.
-- Tighten the goal, scope (explicit IN and OUT), success criteria, and constraints.
-- Call out **what decisions remain open** and are expected to be resolved by the experiment.
-
-## Output 2 — Experiment Recommendations
-Save as `$CWD/documentation/01_research/output/experiment-recommendations.md`.
-- Base recommendations on the **gaps and open questions** surfaced by the literature review.
-- For each recommendation, state: what to test, why (which gap/decision it resolves), and how
-  it maps onto the available resources (EC2 vs. home lab).
-- Be concrete enough that the Experiment phase can turn these into server configs and scripts.
+Your only outputs are those three files in `output/`.

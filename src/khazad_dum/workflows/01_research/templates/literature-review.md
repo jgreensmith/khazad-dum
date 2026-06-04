@@ -57,5 +57,7 @@
 
 
 ---
-## References
-{{APA style reference list}}
+## Sources
+<!-- Flat list of the links used inline. Add an entry for any claim that had no
+     locatable URL (cited in text as (literature-review#sources)). No APA needed. -->
+- {{brief_source_name}} — {{URL or "from prior training, no locatable URL"}}

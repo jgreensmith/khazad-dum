@@ -183,11 +183,10 @@ def _next_pending(state: State) -> Step | None:
 
 # Maps a sub-prompt / analysis-prompt name → template file stems to inject.
 _SUB_PROMPT_TEMPLATES: dict[str, tuple[str, ...]] = {
-    # research (older wiring; left as-is pending the research rewire)
-    "create-pre-literature-review-questionnaire": ("questionnaire",),
-    "literature-review-decision": ("literature-review",),
-    "create-post-literature-review-questionnaire": ("questionnaire",),
-    "next-steps": (),
+    # research
+    "research-gate": ("questionnaire",),
+    "draft-and-refine": ("literature-review", "questionnaire"),
+    "complete-research-step": (),
     # experiment
     "experiment-decision": ("questionnaire",),
     "experiment-report": ("experiment-report",),
