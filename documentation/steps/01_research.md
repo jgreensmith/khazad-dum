@@ -33,12 +33,14 @@ three folders. This convention repeats in steps 1–4, so it is worth learning o
 
 | Folder     | Owner          | Holds                                                            |
 |------------|----------------|-----------------------------------------------------------------|
-| `input/`   | **You**        | The current plan iteration. The agent **never** writes here.    |
-| `process/` | The agent      | Working files: the two questionnaires, and the draft artefacts. |
+| `input/`   | **You**        | Your plan iteration, written once at step start. Stays unchanged.|
+| `process/` | The agent      | Working files: the two questionnaires (you answer in-file), and the draft artefacts. |
 | `output/`  | The agent      | The finalised artefacts, promoted from `process/` on completion.|
 
-The golden rule: **`input/` is yours.** The agent reads it but is forbidden from changing it. You
-refine the plan by hand, in `input/`, between runs.
+The golden rule: **`input/` is yours, and it stays put.** The agent reads it but never changes it — and
+you don't need to either. You answer the agent's questions **in the questionnaire** (in `process/`); the
+agent folds those answers into the refined plan in `process/`. `input/` stays exactly as you first wrote
+it.
 
 Note the flow of the three deliverables: they are **drafted and refined in `process/`** across the
 second gate, and only **moved to `output/`** once you complete the step. The two questionnaires stay
@@ -47,7 +49,7 @@ in `process/` — they are working artefacts, not handoff.
 ## The workflow in detail
 
 The step runs as three sub-prompts. A fresh agent (no memory of previous runs) is used each time;
-the questionnaires and your edits to `input/` are the only memory between runs. Both gates are
+the questionnaires — where you write your answers in-file — are the only memory between runs. Both gates are
 **hybrid**: the agent reports how confident it is and recommends whether to advance, but **you make
 the call** — there is no automatic threshold.
 
@@ -61,7 +63,8 @@ A **looping pre-review gate**. Each run, the agent:
 3. **Appends a new round** of 3–12 questions to that single questionnaire (it never edits earlier
    rounds), headed with its **% certainty** and an *advance / clarify* recommendation.
 
-You answer in-file, refine `input/`, and either re-run the gate or advance when you are satisfied.
+You answer in the questionnaire (in-file); `input/` stays unchanged. Re-run the gate or advance when
+satisfied.
 
 ### Workflow 1.1.2 — Literature Review & Post-Review Gate
 
@@ -79,8 +82,8 @@ A **looping post-review gate** that builds the deliverables. Each run, the agent
 2. **Appends a round** to the single `process/post-literature-review-questionnaire.md`, including an
    **Additional research requested** section — fill it to send the next cycle back for more research.
 
-You answer, refine `input/`, and either re-run (to refine further or request more research) or
-advance.
+You answer in the questionnaire; the agent folds your answers into the artefacts. Re-run (to refine
+further or request more research) or advance.
 
 ### Workflow 1.1.3 — Complete Research Step
 
@@ -93,8 +96,8 @@ resource). The questionnaires remain in `process/`. This is the handoff to Step 
 1. Write your initial plan into `documentation/01_research/input/` (seeded for you by
    `khazad-dum init`).
 2. Run the research gate (`khazad-dum run research`, in the current CLI).
-3. Read the questionnaire round in `process/`, **think, and answer it by editing your plan in
-   `input/`**. Re-run the gate until you are happy, then advance.
+3. Read the questionnaire round in `process/`, **think, and answer it in-file** (in the questionnaire).
+   Leave `input/` as you wrote it. Re-run the gate until you are happy, then advance.
 4. The draft step writes the three artefacts to `process/` and a post-review questionnaire. Read,
    answer, request more research if needed, and re-run to refine — or advance.
 5. Complete the step to promote the artefacts to `output/`.
@@ -120,12 +123,12 @@ resource). The questionnaires remain in `process/`. This is the handoff to Step 
 flowchart TD
     A["input/ research plan (iteration 1)"] --> B["Agent 1.1.1: critically analyse the plan"]
     B --> C["Append round to pre-review questionnaire (certainty + recommendation)"]
-    C --> D["You answer by hand: refine input/"]
+    C --> D["You answer in-file (input/ stays pristine)"]
     D --> E{"You: advance?"}
     E -->|"No — clarify more"| B
     E -->|Yes| F["Agent 1.1.2: draft/refine the 3 artefacts in process/"]
     F --> G["Append round to post-review questionnaire (+ request more research)"]
-    G --> H["You answer / request research: refine input/"]
+    G --> H["You answer in-file / request research"]
     H --> I{"You: advance?"}
     I -->|"No — refine / more research"| F
     I -->|Yes| J["Agent 1.1.3: QC + promote process/ → output/"]
@@ -138,8 +141,8 @@ flowchart TD
   silently rewrites your `input/`, and it never auto-advances past a gate — you decide.
 - **Keep experiment feasibility in mind.** Recommendations that need GPUs or managed cloud services
   are out of scope unless explicitly flagged — downstream you only have EC2 and a home lab.
-- **A fresh agent each cycle** means the questionnaires and your written answers (in `input/`) are
-  the only memory between runs. Answer in the plan itself, not in chat.
+- **A fresh agent each cycle** means the questionnaires — your written answers in-file — are the only
+  memory between runs. Answer in the questionnaire, not in chat; `input/` stays as you first wrote it.
 - **Use the "Additional research requested" section** in the post-review questionnaire whenever the
   literature review misses something — it is the supported way to ask for more.
 - **The deliverables live in `process/` until you complete the step**, so you can iterate on them

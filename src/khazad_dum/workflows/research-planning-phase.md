@@ -6,8 +6,10 @@
 				Workflow 1.1.2 - Literature Review & Post-Review Gate
 			Workflow 1.1.3 - Complete Research Step
 		Step 1.2 - Experiment:
-			Workflow 1.2.1 - Experiment Gate (Config or Clarify)
-			Workflow 1.2.2 - Complete Experiment Step
+			Workflow 1.2.1 - Experiment Gate (Clarify Plan & Experiment)
+			Workflow 1.2.2 - Draft Experiment (Config & Payload)
+			Workflow 1.2.3 - Interpret Results & Refine Plan
+			Workflow 1.2.4 - Complete Experiment Step
 		Step 1.3 - Architecture:
 			Workflow 1.3.1 - Domain Modelling Loop
 			Workflow 1.3.2 - Complete Architecture Step

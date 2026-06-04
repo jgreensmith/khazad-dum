@@ -3,6 +3,15 @@
 ## Summary
 <!-- 2–4 sentences: what was tested and the headline result. -->
 
+## Architecture
+<!-- A mermaid diagram of the topology actually run: remote app (AWS EC2, region),
+     local app (home-lab container), the Twingate WAN link under test, the
+     protocol + app port, and where results are recorded. -->
+
+```mermaid
+flowchart LR
+```
+
 ## Setup
 - **Topology:** remote app (AWS EC2, region …) ⇄ local app (home-lab Docker container), over a
   Twingate TLS tunnel.
@@ -31,3 +40,6 @@
 
 ## Open Questions for Architecture
 <!-- Anything the experiment did not settle that the next phase must resolve. -->
+
+## Appendix — Payload Scripts
+<!-- One subsection per endpoint, from process/payload/<name>/<name>.md. -->

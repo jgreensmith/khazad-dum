@@ -14,7 +14,7 @@ promoted to `output/` only on completion.
 - **1.1.1 `research-gate`** (pre-review, loops): critically analyse the `input/` plan (actively hunt
   ambiguities/gaps/risks). **Appends** a `## Round {N}` block to the single
   `process/pre-literature-review-questionnaire.md` — certainty % + recommendation, then 3–12 hard
-  questions. Never writes the review. Human answers in-file, refines `input/`, advances when ready.
+  questions. Never writes the review. Human answers in-file; `input/` stays pristine; advances when ready.
 - **1.1.2 `draft-and-refine`** (post-review, loops): create-or-refine **three artifacts in `process/`** —
   `literature-review.md` (3–4 pp; inline `[..](URL)` + `*Certainty*` + `*Reliability*` tags with
   🟩/🟨/🟧/🟥 bands; `#sources` fallback when no URL), `refined-project-plan.md`,
@@ -33,7 +33,7 @@ server**.
   appended questionnaires remain in `process/`.
 
 ## Flow
-`input → research-gate → pre-questionnaire → human edits input / re-runs gate → (advance) →
+`input → research-gate → pre-questionnaire → human answers in-file / re-runs gate → (advance) →
 draft-and-refine → 3 artifacts in process/ + post-questionnaire → human answers / requests more research
 / re-runs → (advance) → complete → promote to output/`.
 

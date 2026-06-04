@@ -28,7 +28,9 @@ STEPS: list[Step] = [
         "complete-research-step",
     )),
     Step(2, "experiment", "Experiment", sub_prompts=(
-        "experiment-decision",
+        "experiment-gate",
+        "draft-experiment",
+        "interpret-and-refine",
         "complete-experiment-step",
     )),
     Step(3, "architecture", "Architecture"),

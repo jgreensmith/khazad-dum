@@ -7,7 +7,8 @@ literature review here. You never see prior cycles' reasoning — only the curre
 and the questionnaire already in `process/`.
 
 ## Inputs (read-only)
-- The provided **Project Description** (the human-owned `input/` plan).
+- The provided **Project Description** (the human-owned `input/` plan) — it stays unchanged across
+  cycles; the human answers in the questionnaire, not by editing it.
 - `documentation/01_research/process/pre-literature-review-questionnaire.md` if it exists — read every
   prior round and the human's answers so you don't repeat questions and can judge what's now resolved.
 
@@ -26,5 +27,5 @@ and the questionnaire already in `process/`.
    questionnaire (never edit prior rounds) — start it with your certainty % and recommendation, then
    3–12 questions drawn from step 2. Prefer hard questions that demand written, researched answers.
 
-Stop after writing. The human answers in-file, refines the Project Description, and decides whether to
+Stop after writing. The human answers in-file (leaving `input/` unchanged) and decides whether to
 re-run this gate or advance to the literature review.

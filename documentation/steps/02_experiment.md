@@ -5,32 +5,42 @@
 
 ## Purpose
 
-Research told you what is *known*. The Experiment step settles what is *unknown* by measuring it.
-For now every experiment is fixed to one question — **benchmarking communication over the WAN** —
-run across a real wide-area link so you see the higher, more variable latency a LAN can't show.
+Research told you what is *known*. The Experiment step settles what is *unknown* by measuring it. For now
+every experiment is fixed to one question — **benchmarking communication over the WAN** — run across a
+real wide-area link so you see the higher, more variable latency a LAN can't show.
 
-The step:
+The step turns two plans into a runnable benchmark, provisions the infrastructure, runs it, collects and
+graphs the data, writes a report, then folds the measured outcome into a **finalised project plan
+(iteration 3)** for the Architecture phase.
 
-1. Turns your plan into a runnable **experiment configuration** (which endpoints, which region) plus
-   the **payload** code that performs the benchmark.
-2. Provisions the infrastructure, runs the benchmark, collects the data, graphs it, and writes a
-   report.
-3. Folds the measured outcome back into a **finalised project plan (iteration 3)** that the
-   Architecture phase can build on.
-
-For the infrastructure mechanics (Terraform, Twingate, the bundle/listener model, credentials) see
+For the infrastructure mechanics (Terraform, Twingate, the listener model, credentials) see
 [../terraform.md](../terraform.md). This doc covers the *workflow*.
+
+## Two inputs, kept pristine
+
+Step 2's `input/` holds **two human-owned docs**, both seeded by `khazad-dum init`:
+
+| File | What it is |
+|------|------------|
+| `project-description.md` | The project this experiment serves (promote Research's `refined-project-plan.md`, iteration 1, into here). |
+| `experiment-plan.md` | The specific experiment design — protocol/metrics, load, success criteria. |
+
+As in Research, **`input/` stays pristine**: you don't hand-edit it. You answer the agent's questions
+**in the questionnaires** (in `process/`), and the agent folds your answers into refined copies under
+`process/`. The two gates challenge *both* docs.
+
+These two docs are the **only** things in `input/`. The agent writes the config, payload, results, and
+everything else to `process/`, and `build` reads them from there — you never copy files between folders.
 
 ## The fixed topology (a hard constraint)
 
-You design **within** this shape — you cannot change it, only choose the protocol, metrics, region,
-and load:
+You design **within** this shape — you choose the protocol, metrics, region, and load, not the shape:
 
-- A **remote app** on an **AWS EC2** host — `target: "aws"`, `role: "remote"` — the **server** side.
-- A **local app** in a **Docker container on the home lab** (computron) — `target: "homelab"`,
-  `role: "local"` — the **client/driver** that generates load and records measurements.
-- The two reach each other over a **Twingate TLS tunnel**. That tunnel is both the WAN link under
-  test (data plane) *and* the channel khazad-dum uses to drive the endpoints (control plane).
+- A **remote app** on an **AWS EC2** host — `role: remote` — the **server** side.
+- A **local app** in a **Docker container on the home lab** (computron) — `role: local` — the
+  **client/driver** that generates load and records measurements.
+- They reach each other over a **Twingate TLS tunnel** — the WAN link under test *and* the channel
+  khazad-dum uses to drive the endpoints.
 
 ```mermaid
 flowchart LR
@@ -52,10 +62,10 @@ flowchart LR
 
 ## Listener vs payload — what you author
 
-khazad-dum installs a **fixed listener** on every endpoint automatically (a small HTTP server
-exposing `/health`, `/run`, `/status`, `/results`). **You never write or manage the listener.** The
-agent authors only the **payload** the listener runs: an executable `run` (plus an optional
-`provision.sh`) for each endpoint, written against four environment variables the listener provides:
+khazad-dum installs a **fixed listener** on every endpoint automatically (a small HTTP server). **You
+never write the listener.** The agent (in `draft-experiment`) authors only the **payload** the listener
+runs: an executable `run` (plus an optional `provision.sh`) per endpoint, against four environment
+variables:
 
 | Variable | Meaning |
 |----------|---------|
@@ -64,97 +74,125 @@ agent authors only the **payload** the listener runs: an executable `run` (plus 
 | `KHAZAD_RESULTS_DIR` | Write all results here, as machine-readable CSV/JSON. |
 | `KHAZAD_RUN_ID` | The current run id. |
 
-A run that records nothing parseable is useless — the graphing step needs columns it can plot.
+**The payload contract** (the agent must honour it; check it before promoting):
+- **The server self-terminates** — time-boxed, or stopped by an end-signal from the client. A server
+  that runs forever can't have its results fetched and would otherwise stall the run.
+- **The client tolerates a cold server** — both sides start at once, so it retries the connection.
+- **Both sides share one app port**, and write parseable results the graphing step can plot.
 
 ## The workflow in detail
 
-### Workflow 1.2.1 — Experiment Gate (Config or Clarify)
+Four sub-prompts wrap the pipeline. Each gate **loops** and reports a `Certainty · Recommendation`;
+**you make the advance call** — there is no automatic threshold.
 
-A **looping gate**, exactly like Research's: each cycle the agent critically analyses your plan
-(protocol, metrics, server behaviour, client load, result format), self-assesses certainty, and
-branches:
+### Workflow 1.2.1 — Experiment Gate (Clarify Plan & Experiment)
 
-- **< 98%** → writes a new `process/pre-experiment-questionnaire-{N}.md` and stops.
-- **≥ 98%** → drafts the experiment into `process/`:
-  - `process/servers.json` — exactly two endpoints (one `aws`/`remote`, one `homelab`/`local`).
-  - `process/payload/<name>/` — the `run` (and optional `provision.sh`) for each endpoint.
-  - `process/PROMOTION.md` — a checklist telling you exactly what to copy into `input/`.
+A looping pre-experiment gate. Each cycle the agent attacks **both** input docs (protocol, metrics,
+server/client behaviour, result shape) and appends a `## Round {N}` of hard questions to
+`process/pre-experiment-questionnaire.md`. **Questions only** — nothing is designed yet. You answer
+in-file and advance when ready.
 
-Crucially, the gate writes **drafts to `process/` only**. Nothing runs until **you promote** the
-approved files into `input/` (the `build` command reads `input/`, never `process/`).
+### Workflow 1.2.2 — Draft Experiment (Config & Payload)
+
+A looping draft step. Each cycle the agent folds your answers into refined plans in `process/`, drafts the
+experiment into `process/`, and appends a **review** round you answer:
+
+- `servers.json` — exactly two endpoints (one `aws`/`remote`, one `homelab`/`local`).
+- `payload/<name>/` — the `run` (+ optional `provision.sh`) for each endpoint, plus a `<name>.md`
+  documenting what the script does (its behaviour, port, result columns).
+- `draft-review-questionnaire.md` — a `## Round {N}` where the agent reports its confidence and asks you
+  to **confirm or correct the scripts** — the load, the metrics, the result columns.
+
+You won't hand-edit the scripts. Instead you **read the `<name>.md` docs and answer the review
+questionnaire in plain language** ("send 1000 requests, not 100"; "also record connect time"), and the
+agent rewrites the scripts next run. When you're happy you run the pipeline — there is **no promotion
+step**: `build` reads the config + payload straight from `process/`.
 
 ### The infra pipeline: build → start → fetch → graph → report
 
-After you promote the config and payload into `input/`, five fixed CLI stages run the experiment:
-
 | Stage | Command | What happens |
 |-------|---------|--------------|
-| build | `khazad-dum build experiment` | Terraform provisions both endpoints + listener + Twingate. |
-| start | `khazad-dum start experiment` | Triggers each endpoint's payload `run` (injecting peer address). |
-| fetch | `khazad-dum fetch experiment` | Pulls all results back to `process/results/`. |
+| build | `khazad-dum build experiment` | Reads `process/servers.json` + `process/payload/`; Terraform provisions both endpoints + listener + Twingate. |
+| start | `khazad-dum start experiment` | Triggers each payload `run`; waits for the **client** side to finish (the server is not waited on). |
+| fetch | `khazad-dum fetch experiment` | Pulls results back to `process/results/`. |
 | graph | `khazad-dum graph experiment` | A WRITE-mode agent runs pandas/matplotlib → `output/graphs/` + `stats.json`. |
-| report | `khazad-dum report experiment` | A WRITE-mode agent interprets the data → `output/experiment-report.md`. |
+| report | `khazad-dum report experiment` | A WRITE-mode agent writes `output/experiment-report.md` — with a mermaid topology diagram and the script-docs appended as appendices. |
 
-> The trigger verb is **`start`** (not `run`) because `run` is already taken by `khazad-dum run <step>`.
+> The trigger verb is **`start`** (not `run`) because `run` is taken by `khazad-dum run <step>`.
 
-When you're done, tear the infra down with `khazad-dum destroy experiment`.
+**If a payload is broken** (the report or a `run.log` shows a failure), re-run **`draft-experiment`** — it
+reads `process/results/<endpoint>/run.log` and fixes the payload draft. Re-run the pipeline. When
+finished, `khazad-dum destroy experiment`.
 
-### Workflow 1.2.2 — Complete Experiment Step
+### Workflow 1.2.3 — Interpret Results & Refine Plan
 
-After the report exists and you've refined `input/` in light of the results, this sub-prompt writes
-**`output/finalised-project-plan.md` (iteration 3)**: your plan synthesised with what the experiment
-actually demonstrated about WAN communication — decisions resolved, scope/criteria updated, and any
-question left for Architecture flagged. This is the direct input to Step 3.
+A looping post-experiment gate. Each cycle the agent writes/refines `process/finalised-project-plan.md`
+(**iteration 3**) — the plan synthesised with what the experiment demonstrated — and appends a
+`## Round {N}` to `process/post-experiment-questionnaire.md` challenging what the results mean for the
+project. You answer in-file and advance.
+
+### Workflow 1.2.4 — Complete Experiment Step
+
+A final QC pass that **promotes** `finalised-project-plan.md` from `process/` to `output/`. This is the
+direct input to Step 3.
 
 ## What you do
 
-1. Run the gate; answer questionnaires by refining `input/` until it drafts a config + payload.
-2. Read `process/PROMOTION.md` and **copy the approved `servers.json` + `payload/` into `input/`**
-   (keep `run` executable).
-3. `build` → `start` → `fetch` → `graph` → `report`.
-4. Read `output/experiment-report.md`; refine `input/`.
-5. Run the complete sub-prompt → finalised plan (iteration 3). `destroy` the infra.
+1. Promote Research's outputs into `input/project-description.md`; fill `input/experiment-plan.md`.
+2. Run the gate; answer questionnaires in-file until you advance.
+3. Run draft; read the script-docs, answer the **draft-review questionnaire** to correct the scripts, and
+   re-run until happy.
+4. `build → start → fetch → graph → report` (build reads `process/`). If a payload fails, re-run
+   `draft-experiment` to fix it, then re-run the pipeline.
+5. Read `output/experiment-report.md`; run the interpret gate, answering in-file.
+6. Complete → finalised plan (iteration 3) in `output/`. `destroy` the infra.
 
 ## Artifacts in and out
 
 | Direction | File | Notes |
 |-----------|------|-------|
-| In  | `input/` plan (iteration 2) | From Research. |
-| Out (draft) | `process/servers.json`, `process/payload/<name>/`, `process/PROMOTION.md` | You promote to `input/`. |
-| In (promoted) | `input/servers.json`, `input/payload/<name>/` | What `build` consumes. |
-| Out | `process/results/<endpoint>/` | Raw fetched data. |
-| Out | `output/graphs/*.png`, `output/graphs/stats.json` | From `graph`. |
-| Out | `output/experiment-report.md` | From `report`. |
+| In (pristine) | `input/{project-description,experiment-plan}.md` | The only files in `input/`; never edited mid-step. |
+| Work | `process/{pre-experiment,draft-review,post-experiment}-questionnaire.md` | One file each; a round appended per cycle. |
+| Work | `process/{project-description,experiment-plan}.md` | Refined iterations (iter 2). |
+| Work | `process/servers.json`, `process/payload/<name>/` | Drafted by the agent; `build` reads them here (no promotion). |
+| Out | `process/results/<endpoint>/` | Raw fetched data (incl. `run.log`). |
+| Out | `output/graphs/*.png`, `stats.json` | From `graph`. |
+| Out | `output/experiment-report.md` | From `report` (mermaid + appendices). |
 | Out | `output/finalised-project-plan.md` | Iteration 3 → Step 3. |
 
 ## Control flow
 
 ```mermaid
 flowchart TD
-    A["input/ plan (iteration 2)"] --> B["Agent 1.2.1: analyse plan"]
-    B --> C{"Certainty >= 98%?"}
-    C -->|No| D["New questionnaire to process/"]
-    D --> E["You refine input/"]
-    E --> B
-    C -->|Yes| F["Draft servers.json + payload + PROMOTION.md to process/"]
-    F --> G["You PROMOTE approved drafts into input/"]
-    G --> H["build: terraform apply (2 endpoints + listener + Twingate)"]
-    H --> I["start: run payload on each endpoint"]
-    I --> J["fetch: pull results to process/results/"]
-    J --> K["graph: pandas/matplotlib to output/graphs/ + stats.json"]
-    K --> L["report: experiment-report.md to output/"]
-    L --> M["You refine input/ in light of results"]
-    M --> N["Agent 1.2.2: complete -> finalised-project-plan.md (iteration 3)"]
-    N --> O["Advance to Step 3 — Architecture"]
+    A["input/ project-description + experiment-plan (pristine)"] --> B["1.2.1 gate: challenge both plans"]
+    B --> C["Append round to pre-experiment questionnaire"]
+    C --> D["You answer in-file"]
+    D --> E{"You: advance?"}
+    E -->|No| B
+    E -->|Yes| F["1.2.2 draft: refine plans + servers.json + payload + script-docs to process/ + review round"]
+    F --> G["You answer the draft-review questionnaire in-file"]
+    G --> G2{"You: happy with the scripts?"}
+    G2 -->|No| F
+    G2 -->|Yes| H["build → start → fetch → graph → report (build reads process/)"]
+    H --> I{"Payload broken?"}
+    I -->|Yes| F
+    I -->|No| J["1.2.3 interpret: finalised-plan (iter 3) in process/ + post questionnaire"]
+    J --> K["You answer in-file"]
+    K --> L{"You: advance?"}
+    L -->|No| J
+    L -->|Yes| M["1.2.4 complete: promote finalised-plan to output/"]
+    M --> N["Advance to Step 3 — Architecture"]
 ```
 
 ## Tips and gotchas
 
-- **Promotion is a deliberate human gate.** The gate cannot touch `input/`; nothing is provisioned
-  until you copy drafts across. Review the payload before promoting.
+- **You don't edit scripts or copy files.** The agent owns `servers.json` + the payload (in `process/`);
+  you steer them by answering the **draft-review questionnaire**, and `build` reads them from `process/`.
+  Nothing is provisioned until you run `build`, so review the script-docs first.
+- **`input/` stays pristine.** Answer in the questionnaires, not by hand-editing the two plan docs.
 - **Pick a region for a realistic WAN distance** — the point is to stress a real wide-area link.
-- **Live-tweak risk:** homelab Twingate addressing and home→AWS app routing depend on the live
-  tenant and may need a hands-on adjustment on the first real run (see terraform.md).
-- **Keep the two payloads consistent:** the client must connect to the same app port the server
-  listens on.
+- **The server must self-terminate** and the client must retry a cold server — check this in the drafted
+  payload before promoting; it's the most common cause of a stalled or empty run.
+- **Live-tweak risk:** homelab Twingate addressing and home→AWS routing depend on the live tenant and may
+  need a hands-on adjustment on the first real run (see terraform.md).
 - Remember to `destroy` when finished so you aren't paying for idle EC2.

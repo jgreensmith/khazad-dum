@@ -1,26 +1,19 @@
-## Workflow 1.2.2 — Complete Experiment Step
+## Workflow 1.2.4 — Complete Experiment Step
 
-You run **after** the experiment has been provisioned (`khazad-dum build experiment`), run
-(`start`), collected (`fetch`), and analysed (`graph` → `report`), and the human has refined the plan
-in `input/` in light of the results. Using the current `input/` plus the generated experiment report,
-produce the finalised handoff artifact for the Architecture phase: a **finalised project plan
-(iteration 3)**.
+The post-experiment gate has passed. Promote the finalised plan from `process/` to `output/` after a
+final quality pass. This is the handoff to the Architecture phase. You add nothing new — you verify and
+move.
 
-Your only output is the file below.
+## Do this
+1. Read `documentation/02_experiment/process/finalised-project-plan.md` (iteration 3).
+2. **Final QC** (fix in place if quick; else note the gap in the file):
+   - the plan's scope (IN/OUT), success criteria, and constraints are unambiguous and reflect the
+     measured results;
+   - the decisions the experiment was meant to settle are resolved, and anything still open is flagged
+     for Architecture;
+   - it describes the application concretely enough for domain modelling to begin.
+3. Write the verified copy to `documentation/02_experiment/output/finalised-project-plan.md`.
+4. Leave the questionnaires + the experiment report/graphs where they are — working/handoff artefacts,
+   not this step's output.
 
-## Inputs (read-only)
-- The provided **Project Description** — the human's current, refined experiment plan in `input/`.
-- The generated **experiment report** at `$CWD/documentation/02_experiment/output/experiment-report.md`
-  and the graphs under `$CWD/documentation/02_experiment/output/graphs/`.
-- The raw fetched results under `$CWD/documentation/02_experiment/process/results/` and any
-  questionnaires under `process/`, for context on what was tested.
-
-## Output — Finalised Project Plan (iteration 3)
-Save as `$CWD/documentation/02_experiment/output/finalised-project-plan.md`.
-- Synthesise the input plan with **what the experiment actually demonstrated** about WAN communication
-  — what the measured latency/throughput/behaviour means for the project, what worked, what did not.
-- Resolve the decisions the experiment was meant to settle; fold the outcomes back into the goal,
-  scope (explicit IN and OUT), success criteria, and constraints.
-- This is **iteration 3**: it is the direct input to the Architecture phase, so it must describe the
-  application concretely enough for domain modelling and high-level technical architecture to begin.
-- Call out any decisions still open that the Architecture phase must resolve.
+Your only output is that file in `output/`.

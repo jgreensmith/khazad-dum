@@ -26,39 +26,13 @@ EXPERIMENT_DIR = "02_experiment"
 SERVERS_JSON_NAME = "servers.json"
 RESULTS_DIR_NAME = "results"  # under documentation/02_experiment/process/
 
-# An experiment is a WAN-comms benchmark between two endpoints: an AWS EC2 host
-# (the "remote app") and a Docker container on computron (the "local app"),
-# reachable over a Twingate TLS tunnel. Each endpoint points at a payload
-# directory holding an executable `run` (the project's experiment code, authored
-# by the Experiment gate workflow) that writes results the listener serves.
-SERVERS_JSON_TEMPLATE = """[
-  {
-    "name": "remote-app",
-    "target": "aws",
-    "role": "remote",
-    "region": "eu-west-2",
-    "payload_dir": "documentation/02_experiment/input/payload/remote-app"
-  },
-  {
-    "name": "local-app",
-    "target": "homelab",
-    "role": "local",
-    "docker_image": "python:3.12-slim",
-    "payload_dir": "documentation/02_experiment/input/payload/local-app"
-  }
-]
-"""
-
-SAMPLE_PAYLOAD_RUN = """#!/usr/bin/env bash
-set -euo pipefail
-# Experiment entrypoint. khazad-dum's `start` triggers this via the listener;
-# write all outputs into $KHAZAD_RESULTS_DIR. The Experiment gate workflow
-# generates the real benchmark here (e.g. drive a protocol against the peer at
-# $KHAZAD_PEER_ADDR and record latency/throughput). This sample is a placeholder.
-echo "role=$KHAZAD_ROLE peer=$KHAZAD_PEER_ADDR run_id=$KHAZAD_RUN_ID" \\
-  > "$KHAZAD_RESULTS_DIR/info.txt"
-"""
-
+# Step 02 has two human-owned input docs (not a single scope.md); the gate
+# challenges both, and they are injected into every step-02 prompt as labelled
+# sections. The agent keeps them pristine and refines copies under process/.
+EXPERIMENT_INPUT_DOCS = {
+    "project-description.md": "Project Description",
+    "experiment-plan.md": "Experiment Plan",
+}
 
 def _template_text(relative: str) -> str:
     return (resources.files("khazad_dum.workflows") / relative).read_text()
@@ -96,6 +70,9 @@ def cmd_init(args: argparse.Namespace) -> None:
         (step_dir / "input").mkdir(parents=True, exist_ok=True)
         (step_dir / "process").mkdir(parents=True, exist_ok=True)
         (step_dir / "output").mkdir(parents=True, exist_ok=True)
+        if step.dir_name == EXPERIMENT_DIR:
+            _seed_experiment_inputs(step_dir)
+            continue
         scope_path = step_dir / "input" / "scope.md"
         if not scope_path.exists():
             try:
@@ -106,18 +83,8 @@ def cmd_init(args: argparse.Namespace) -> None:
                 scope_template = "<!-- scope template not yet defined for this step -->"
             scope_path.write_text(f"# {step.name} — Scope\n\n{scope_template}")
 
-    experiment_input = docs / EXPERIMENT_DIR / "input"
-    servers_json = experiment_input / SERVERS_JSON_NAME
-    if not servers_json.exists():
-        servers_json.write_text(SERVERS_JSON_TEMPLATE)
-    # Seed a sample payload (executable `run`) for each endpoint in the template.
-    for server in json.loads(SERVERS_JSON_TEMPLATE):
-        payload_dir = project_root / server["payload_dir"]
-        run_script = payload_dir / "run"
-        if not run_script.exists():
-            payload_dir.mkdir(parents=True, exist_ok=True)
-            run_script.write_text(SAMPLE_PAYLOAD_RUN)
-            run_script.chmod(0o755)
+    # No servers.json / payload is seeded: the experiment draft step authors them
+    # under process/, and build reads them from there (no human promotion).
 
     (project_root / STATE_DIR_NAME).mkdir(exist_ok=True)
     State.load(project_root).save(project_root)
@@ -126,7 +93,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     print(f"Initialised khazad-dum in {project_root}")
     print(f"  documentation/  ({len(STEPS)} steps)")
-    print(f"  {DOCS_DIR}/{EXPERIMENT_DIR}/input/{SERVERS_JSON_NAME}")
+    print(f"  {DOCS_DIR}/{EXPERIMENT_DIR}/input/  (project-description.md + experiment-plan.md)")
     print(f"  {STATE_DIR_NAME}/state.json")
 
 
@@ -188,9 +155,30 @@ _SUB_PROMPT_TEMPLATES: dict[str, tuple[str, ...]] = {
     "draft-and-refine": ("literature-review", "questionnaire"),
     "complete-research-step": (),
     # experiment
-    "experiment-decision": ("questionnaire",),
+    "experiment-gate": ("questionnaire",),
+    "draft-experiment": ("script-doc", "questionnaire"),
+    "interpret-and-refine": ("questionnaire",),
     "experiment-report": ("experiment-report",),
 }
+
+
+def _experiment_input_sections(project_root: Path) -> list[str]:
+    """The two human-owned step-02 input docs, as labelled prompt sections."""
+    input_dir = _docs_root(project_root) / EXPERIMENT_DIR / "input"
+    sections: list[str] = []
+    for fname, label in EXPERIMENT_INPUT_DOCS.items():
+        path = input_dir / fname
+        if path.exists():
+            sections.append(f"---\n\n## {label}\n\n{path.read_text()}")
+    return sections
+
+
+def _seed_experiment_inputs(step_dir: Path) -> None:
+    """Seed the two human-owned step-02 input docs from their templates."""
+    for fname in EXPERIMENT_INPUT_DOCS:
+        dest = step_dir / "input" / fname
+        if not dest.exists():
+            dest.write_text(_template_text(f"{EXPERIMENT_DIR}/templates/{fname}"))
 
 
 def _build_prompt(step: Step, project_root: Path) -> str:
@@ -205,11 +193,14 @@ def _build_prompt(step: Step, project_root: Path) -> str:
 
 def _build_sub_prompt(step: Step, sub_prompt: str, project_root: Path) -> str:
     process = _template_text(f"{step.dir_name}/prompts/{sub_prompt}.md")
-    scope_path = _docs_root(project_root) / step.dir_name / "input" / "scope.md"
-    scope = scope_path.read_text() if scope_path.exists() else ""
     parts = [process]
-    if scope:
-        parts.append(f"---\n\n## Project Description\n\n{scope}")
+    if step.dir_name == EXPERIMENT_DIR:
+        parts.extend(_experiment_input_sections(project_root))
+    else:
+        scope_path = _docs_root(project_root) / step.dir_name / "input" / "scope.md"
+        scope = scope_path.read_text() if scope_path.exists() else ""
+        if scope:
+            parts.append(f"---\n\n## Project Description\n\n{scope}")
     for tname in _SUB_PROMPT_TEMPLATES.get(sub_prompt, ()):
         tmpl = _template_text(f"{step.dir_name}/templates/{tname}.md")
         parts.append(f"---\n\n## Template\n\n{tmpl}")
@@ -311,9 +302,12 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 
 def _load_experiment_servers(project_root: Path) -> list[dict]:
-    path = _docs_root(project_root) / EXPERIMENT_DIR / "input" / SERVERS_JSON_NAME
+    path = _docs_root(project_root) / EXPERIMENT_DIR / "process" / SERVERS_JSON_NAME
     if not path.exists():
-        sys.exit(f"Experiment config not found: {path}. Run `khazad-dum init` first.")
+        sys.exit(
+            f"No experiment config at {path}. Run the experiment gate + draft "
+            f"(`khazad-dum run experiment`) to produce servers.json + payload first."
+        )
     try:
         data = json.loads(path.read_text())
     except json.JSONDecodeError as exc:
@@ -352,9 +346,9 @@ def _validate_servers(servers: list[dict], project_root: Path) -> None:
 
         payload = (project_root / s["payload_dir"]).resolve()
         if not payload.is_dir():
-            sys.exit(f"Endpoint '{name}': payload_dir not found: {payload}")
+            sys.exit(f"Endpoint '{name}': payload_dir not found: {payload}. Re-run the experiment draft step.")
         if not (payload / "run").is_file():
-            sys.exit(f"Endpoint '{name}': payload_dir must contain an executable 'run': {payload}")
+            sys.exit(f"Endpoint '{name}': payload_dir has no executable 'run': {payload}. Re-run the experiment draft step.")
 
 
 def _listener_source() -> str:
@@ -555,7 +549,12 @@ def cmd_start(args: argparse.Namespace) -> None:
 
 
 def _poll_until_done(endpoints: dict, *, timeout: int) -> None:
-    pending = {ep["name"]: ep for ep in endpoints.values()}
+    # The local app drives the benchmark and records the results, so the run is
+    # complete once it finishes — we don't wait on the remote (server) side. A
+    # well-behaved server self-terminates; either way `destroy` cleans up, and
+    # blocking on a forever-server would just burn the whole timeout.
+    pending = {ep["name"]: ep for ep in endpoints.values() if ep.get("role") == "local"}
+    pending = pending or {ep["name"]: ep for ep in endpoints.values()}
     deadline = time.time() + timeout
     while pending and time.time() < deadline:
         time.sleep(5)
@@ -571,7 +570,7 @@ def _poll_until_done(endpoints: dict, *, timeout: int) -> None:
     if pending:
         print(f"[khazad-dum] Timed out waiting for: {', '.join(pending)}. Fetch later with `fetch`.")
     else:
-        print("[khazad-dum] All endpoints finished. Run `khazad-dum fetch experiment`.")
+        print("[khazad-dum] Client finished. Run `khazad-dum fetch experiment`.")
 
 
 def cmd_fetch(args: argparse.Namespace) -> None:
@@ -613,8 +612,6 @@ def _extract_results(tar_bytes: bytes, dest: Path) -> None:
 
 def _build_experiment_analysis_prompt(sub_prompt: str, project_root: Path) -> str:
     prompt = _template_text(f"{EXPERIMENT_DIR}/prompts/{sub_prompt}.md")
-    scope_path = _docs_root(project_root) / EXPERIMENT_DIR / "input" / "scope.md"
-    scope = scope_path.read_text() if scope_path.exists() else ""
     results_dir = _docs_root(project_root) / EXPERIMENT_DIR / "process" / RESULTS_DIR_NAME
     manifest = sorted(
         str(p.relative_to(project_root))
@@ -622,8 +619,7 @@ def _build_experiment_analysis_prompt(sub_prompt: str, project_root: Path) -> st
         if p.is_file()
     )
     parts = [prompt]
-    if scope:
-        parts.append(f"---\n\n## Project Description\n\n{scope}")
+    parts.extend(_experiment_input_sections(project_root))
     if manifest:
         listing = "\n".join(f"- {m}" for m in manifest)
         parts.append(f"---\n\n## Fetched result files\n\n{listing}")

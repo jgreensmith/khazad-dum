@@ -18,7 +18,7 @@ Twingate TLS tunnel) via Terraform + a packaged listener, then runs/collects/vis
 
 ### Per-step design ([.claude/docs/steps/](.claude/docs/steps/))
 - [01_research.md](.claude/docs/steps/01_research.md) — gate+complete certainty loop → literature review + refined plan + experiment recs.
-- [02_experiment.md](.claude/docs/steps/02_experiment.md) — gate+complete + `build→start→fetch→graph→report` WAN benchmark; listener vs payload.
+- [02_experiment.md](.claude/docs/steps/02_experiment.md) — gate → draft → interpret → complete around the `build→start→fetch→graph→report` WAN benchmark; pristine two-doc inputs; listener vs payload.
 - [03_architecture.md](.claude/docs/steps/03_architecture.md) — domain-modelling loop+complete; C4/DDD; scaffolds the cargo skeleton; writes `test_commands`.
 - [04_project_management.md](.claude/docs/steps/04_project_management.md) — vertical-slicing loop+complete; emits per-feature `scope.md` + `branch-plan.json`.
 - [05_developer_orchestration.md](.claude/docs/steps/05_developer_orchestration.md) — Phase 2: the 9-phase deterministic TDD state machine.

@@ -6,7 +6,8 @@ questions to the running post-review questionnaire. You never see prior cycles' 
 current files on disk. **Do not write to `output/` here** — that is the complete step's job.
 
 ## Inputs
-- The provided **Project Description** (current `input/` plan).
+- The provided **Project Description** (pristine `input/` plan — the human answers in the
+  questionnaires, not by editing it).
 - `process/pre-literature-review-questionnaire.md` (what was clarified before drafting).
 - `process/post-literature-review-questionnaire.md` if it exists — read prior rounds, the human's
   answers, and especially the **Additional research requested** section.
@@ -27,9 +28,9 @@ server**. Flag anything outside this set as out-of-scope, with the trade-off.
    - Bands for the ⬛: 🟩 95–100 · 🟨 87–94 · 🟧 77–86 · 🟥 <76.
    - No locatable URL? Link to `(literature-review#sources)` and list the source under **Sources**.
    - Honour the post-questionnaire's **Additional research requested** — expand the review to cover it.
-2. **`refined-project-plan.md`** (iteration 1) — synthesise the input plan with what the review
-   established: tighten goal, scope (explicit IN and OUT), success criteria, constraints; and list the
-   **decisions left open for the experiment to resolve**.
+2. **`refined-project-plan.md`** (iteration 1) — synthesise the input plan **and the human's
+   questionnaire answers** with what the review established: tighten goal, scope (explicit IN and OUT),
+   success criteria, constraints; and list the **decisions left open for the experiment to resolve**.
 3. **`experiment-recommendations.md`** — for each recommendation state: what to test, which gap/open
    decision it resolves, and how it maps to EC2 vs. home-lab. Concrete enough to become server
    configs/scripts.
@@ -41,5 +42,5 @@ cycle plus your confidence the three artifacts are ready to hand off, then 4–1
 refined plan and experiment recommendations, plus the **Additional research requested** section for the
 human to fill.
 
-Stop after writing. The human answers, refines `input/`, and decides whether to re-run this step or
-advance to complete.
+Stop after writing. The human answers in-file (leaving `input/` unchanged) and decides whether to
+re-run this step or advance to complete.

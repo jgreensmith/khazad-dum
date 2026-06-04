@@ -14,24 +14,53 @@ the step-05 TDD orchestration engine).
 
 **Next up:** author the step 06 prompts/templates (delivery & maintenance).
 
+## Notes for the next refinement — Step 03 (Architecture)
+Carried from the step-02 refinement (2026-06-04); `/refine-step 03_architecture` should start here:
+- **Adopt the pristine-input model** (now the Phase-1 standard — see Wiring reality): `input/` write-once;
+  human answers questionnaires in-file; agent folds answers into `process/` iterations; promote to
+  `output/` on complete. Architecture's `domain-modelling-loop` + complete should follow it.
+- **Use the established gate shape:** looping, **human-advanced** (no hard self-score threshold) — each
+  cycle append a `## Round {N}` (`Certainty % · Recommendation`) to one running questionnaire; the human
+  makes the advance call. Reuse the round-block `questionnaire.md` template (see 01/02).
+- Architecture's input is step 02's `output/finalised-project-plan.md` (iteration 3), promoted into
+  `03_architecture/input/`. **Single** input doc (unlike 02's two) — the generic `scope.md` injection
+  path in `_build_sub_prompt` fits; no two-doc injection needed.
+- `steps.py` architecture still has **no** `sub_prompts` — rewire to `(domain-modelling-loop,
+  complete-architecture-step)` + matching `_SUB_PROMPT_TEMPLATES`, and switch `scope_template_path` to
+  `project-description.md` (drop the stub `template.md`). See the deferred list below for the intended
+  template wiring.
+
 ## Wiring reality vs design
 `steps.py`: **research rewired (2026-06-04)** to `(research-gate, draft-and-refine,
-complete-research-step)` with matching `_SUB_PROMPT_TEMPLATES`; experiment is wired
-(`experiment-decision`, `complete-experiment-step`); architecture / PM / 05 / 06 still have **no**
-`sub_prompts`. The per-step docs describe the **intended** design; the remaining rewires are deferred
-(below). **Loop control** (per-gate re-run + human-gated advance) is still deferred for every step —
-the linear runner walks each step's sub-prompts once.
+complete-research-step)` with matching `_SUB_PROMPT_TEMPLATES`; experiment **rewired (2026-06-04)** to
+`(experiment-gate, draft-experiment, interpret-and-refine, complete-experiment-step)` with matching
+`_SUB_PROMPT_TEMPLATES` + the two pristine input docs (`project-description.md` + `experiment-plan.md`)
+injected per prompt; architecture / PM / 05 / 06 still have **no** `sub_prompts`. The per-step docs
+describe the **intended** design; the remaining rewires are deferred (below). **Loop control** (per-gate
+re-run + human-gated advance) is still deferred for every step — the linear runner walks each step's
+sub-prompts once.
+
+**Pristine-input model (Phase-1 standard since 2026-06-04):** `input/` is write-once at step start; the
+human answers questionnaires in-file; the agent folds answers into `process/` iterations and promotes to
+`output/` on complete. Steps 01–02 follow it; arch/PM should adopt it when refined.
 
 ## Deferred CLI work (do not do during prompt authoring unless asked)
 The whole CLI surface is in flux — the goal is a bare interactive `khazad-dum` that shows status /
 current step and offers the actions available for that step (replacing the `run` verb). Markdown is
 authored CLI-agnostically (assumes the harness injects "cycle N" and that a human triggers the advance).
 
-**DONE for experiment (2026-05-29), no longer deferred:** experiment `sub_prompts`;
-`cli._SUB_PROMPT_TEMPLATES` experiment entries (gate→`questionnaire`, report→`experiment-report`);
+**DONE for experiment (2026-05-29; refined 2026-06-04), no longer deferred:** experiment `sub_prompts`
+— now the 4-prompt set `(experiment-gate, draft-experiment, interpret-and-refine, complete-experiment-step)`;
+`cli._SUB_PROMPT_TEMPLATES` entries (`experiment-gate`/`interpret-and-refine`→`questionnaire`,
+`draft-experiment`→`script-doc`+`questionnaire`, `experiment-report`→`experiment-report`); the two
+pristine input docs injected per prompt (`_experiment_input_sections`) and seeded by `init`;
+`_poll_until_done` waits on the local/client endpoint only (a self-terminating server isn't waited on);
 the full `build→start→fetch→graph→report` pipeline (per-endpoint bundle staging, the packaged listener,
-`tf_env()` injecting `TF_VAR_tg_*`). Loop control for the experiment gate is still part of the
-interactive-CLI redesign.
+`tf_env()` injecting `TF_VAR_tg_*`). **No promotion (2026-06-04):** the draft step authors `servers.json`
++ `payload/` under `process/` and `build`/`start`/`fetch` read them there (`_load_experiment_servers`
+points at `process/`); `init` no longer seeds them (`SERVERS_JSON_TEMPLATE`/`SAMPLE_PAYLOAD_RUN` deleted),
+and `draft-experiment` appends a `draft-review-questionnaire.md` round so the human steers the scripts
+without editing them. Loop control for the experiment gates is still part of the interactive-CLI redesign.
 
 Still deferred:
 - **Prepend global prompts:** prepend `research-planning-phase.md` to every Phase 1 sub-prompt (steps
@@ -46,8 +75,9 @@ Still deferred:
   without auto-advancing; track the cycle count and inject "cycle N"; the human advances to the
   complete sub-prompt explicitly.
 - **`cli._SUB_PROMPT_TEMPLATES`:** ~~research~~ (done — `research-gate`→`questionnaire`,
-  `draft-and-refine`→`literature-review` + `questionnaire`); experiment
-  gate → `questionnaire`; architecture loop → `questionnaire` + `c4-diagram` + `ddd-table` +
+  `draft-and-refine`→`literature-review` + `questionnaire`); ~~experiment~~ (done —
+  `experiment-gate`/`interpret-and-refine`→`questionnaire`, `draft-experiment`→`script-doc`+`questionnaire`,
+  `experiment-report`→`experiment-report`); architecture loop → `questionnaire` + `c4-diagram` + `ddd-table` +
   `skeleton-proposal`, complete → `detailed-project-description`; PM loop → `questionnaire` +
   `feature-scopes` + `scope`. Step 05: every 2.1.x phase gets `status-report` except 2.1.4
   (`review-report`) and 2.1.7 (`diagnosis-report`); each phase also gets the selected feature's
@@ -69,8 +99,11 @@ Still deferred:
   it (merge, don't clobber).
 - **Already deleted (no longer pending):** research `create-pre/post-literature-review-questionnaire.md`
   + `literature-review-decision.md` (deleted 2026-06-04 in the research rewire),
-  experiment `pre-experiment-questions.md` + `templates/experiment-plan.md`, architecture `prompts/prompt.md`,
-  PM `prompts/prompt.md`, step-05 stale `prompts/refactor.md`.
+  experiment `pre-experiment-questions.md`, experiment `prompts/experiment-decision.md` (deleted
+  2026-06-04 in the experiment refinement, replaced by `experiment-gate`/`draft-experiment`/
+  `interpret-and-refine`), architecture `prompts/prompt.md`, PM `prompts/prompt.md`, step-05 stale
+  `prompts/refactor.md`. (Note: `templates/experiment-plan.md` was re-created 2026-06-04 as a pristine
+  **input** doc — different purpose from the old deleted one.)
 
 ## Known gaps (background)
 - **README.md is stale:** documents an old `templates/prompts/NN.md` layout; real layout is

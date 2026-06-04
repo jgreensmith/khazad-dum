@@ -10,7 +10,8 @@ not interactive.
   (see the **Fetched result files** list appended below for the exact paths). These are the
   machine-readable outputs (CSV/JSON) the experiment payload wrote — typically per-sample latency,
   throughput, timestamps, and possibly server-side logs.
-- The **Project Description** (appended below) for the metrics and success criteria that matter.
+- The **Project Description** + **Experiment Plan** (appended below) for the metrics and success
+  criteria that matter.
 
 ## What to do
 1. **Inspect** the fetched files to learn their actual structure before plotting — do not assume
