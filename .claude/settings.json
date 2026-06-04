@@ -18,7 +18,30 @@
       "Bash(echo *)",
       "Bash(which *)",
       "Bash(pwd)",
-      "Bash(cd *)"
+      "Bash(cd *)",
+      "Read(//Users/james/.claude/**)",
+      "Read(//Users/james/Notes/Projects/DAAO/prompts/**)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat \"{}\"')",
+      "Bash(terraform fmt *)",
+      "Bash(PYTHONPATH=src /Users/james/.local/pipx/venvs/khazad-dum/bin/python -c 'import khazad_dum.cli as c; print\\(c.__file__\\)')",
+      "Bash(/Users/james/.local/pipx/venvs/khazad-dum/bin/python -c \"import ast; ast.parse\\(open\\('src/khazad_dum/cli.py'\\).read\\(\\)\\); print\\('cli.py OK'\\)\")",
+      "Bash(khazad-dum build *)",
+      "Bash(xxd)",
+      "Bash(git mv *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git -C /Users/james/khazad-dum status)",
+      "Bash(git -C /Users/james/khazad-dum diff --stat)",
+      "Bash(git -C /Users/james/khazad-dum log --oneline -8)",
+      "Bash(git -C /Users/james/khazad-dum commit -m ' *)",
+      "Bash(git -C /Users/james/khazad-dum push)",
+      "Skill(open-drawio)",
+      "Bash(git checkout *)",
+      "Bash(bash *)",
+      "Bash(git commit *)",
+      "Bash(git merge *)"
     ]
   }
 }
